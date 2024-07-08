@@ -1,0 +1,9 @@
+.vscode/
+
+*__pycache__/*
+
+
+results/*
+
+processed_data
+data
