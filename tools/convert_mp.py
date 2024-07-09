@@ -50,7 +50,7 @@ def main():
                 bf16=False,
             ).state_dict()
         else:
-            model_hf = AutoModelForCausalLM.from_pretrained(args.input_path, torch_dtype=torch.float16).state_dict()
+            model_hf = AutoModelForCausalLM.from_pretrained(args.input_path, torch_dtype=torch.float16, device_map="auto").state_dict()
         d_list = increase_mp(model_hf, args.target_mp_size, half=args.half)
         for i, d in enumerate(d_list):
             torch.save(d, os.path.join(args.save_path, f"pytorch_model_{i}.bin"))

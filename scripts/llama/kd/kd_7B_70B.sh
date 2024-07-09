@@ -1,100 +1,51 @@
-#! /bin/bash
+BASE_PATH=${1-"/home1/hieutn/cs566-test/i-am-sober"} # path to i-am-sober folder
+MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"  # path to model snapshots
+TEACHER_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"    # path to model snapshots
 
-MASTER_ADDR=localhost
-MASTER_PORT=${2-2012}
-NNODES=1
-NODE_RANK=0
-GPUS_PER_NODE=${3-16}
+NPROCS=2 # number of GPUs to use
 
-DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE \
-                  --nnodes $NNODES \
-                  --node_rank $NODE_RANK \
-                  --master_addr $MASTER_ADDR \
-                  --master_port $MASTER_PORT"
+# Tokenize data and save in binary files
+PYTHONPATH=${BASE_PATH} python ${BASE_PATH}/tools/process_data_dolly.py \
+    --data-dir ${BASE_PATH}/data/dolly/ \
+    --processed-data-dir ${BASE_PATH}/processed_data/dolly/full \
+    --model-path ${MODEL_PATH} \
+    --data-process-workers 32 \
+    --max-prompt-length 256 \
+    --dev-num 1000 \
+    --model-type llama
 
-# model
-BASE_PATH=${1-"/home/MiniLLM"}
-CKPT_NAME="llama-7B"
-CKPT="${BASE_PATH}/checkpoints/${CKPT_NAME}/"
-TEACHER_CKPT_NAME="13B-sft"
-TEACHER_CKPT="${BASE_PATH}/results/llama/train/sft/llama-13B/"
-MP_SIZE=4
-# data
-DATA_DIR="${BASE_PATH}/processed_data/dolly/full/llama/"
-# hp
-BATCH_SIZE=8
-LR=0.00001
-GRAD_ACC=1
-EVAL_BATCH_SIZE=8
-# length
-MAX_LENGTH=512
-# runtime
-SAVE_PATH="${BASE_PATH}/results/llama/train/kd"
-# seed
-SEED=10
+# Change Model Parallel Size
+python tools/convert_mp.py --input_path ${MODEL_PATH} --source_mp_size 1 --target_mp_size ${NPROCS} --model_type llama --exist_ok
+python tools/convert_mp.py --input_path ${TEACHER_PATH} --source_mp_size 1 --target_mp_size ${NPROCS} --model_type llama --exist_ok
 
-
-OPTS=""
-# model
-OPTS+=" --base-path ${BASE_PATH}"
-OPTS+=" --model-path ${CKPT}"
-OPTS+=" --teacher-model-path ${TEACHER_CKPT}"
-OPTS+=" --ckpt-name ${CKPT_NAME}"
-OPTS+=" --teacher-ckpt-name ${TEACHER_CKPT_NAME}"
-OPTS+=" --teacher-model-fp16"
-OPTS+=" --n-gpu ${GPUS_PER_NODE}"
-OPTS+=" --model-type llama"
-OPTS+=" --gradient-checkpointing"
-OPTS+=" --model-parallel"
-OPTS+=" --model-parallel-size ${MP_SIZE}"
-# data
-OPTS+=" --data-dir ${DATA_DIR}"
-OPTS+=" --num-workers 4"
-OPTS+=" --dev-num 1000"
-# hp
-OPTS+=" --lr ${LR}"
-OPTS+=" --batch-size ${BATCH_SIZE}"
-OPTS+=" --eval-batch-size ${EVAL_BATCH_SIZE}"
-OPTS+=" --gradient-accumulation-steps ${GRAD_ACC}"
-OPTS+=" --warmup-iters 0"
-OPTS+=" --lr-decay-style cosine"
-OPTS+=" --weight-decay 1e-2"
-OPTS+=" --clip-grad 1.0"
-OPTS+=" --epochs 10"
-OPTS+=" --kd-ratio 0.5"
-# length
-OPTS+=" --max-length ${MAX_LENGTH}"
-OPTS+=" --max-prompt-length 256"
-# runtime
-OPTS+=" --do-train"
-OPTS+=" --do-valid"
-OPTS+=" --eval-gen"
-OPTS+=" --save-interval -1"
-OPTS+=" --eval-interval -1"
-OPTS+=" --log-interval 4"
-OPTS+=" --mid-log-num -1"
-OPTS+=" --save ${SAVE_PATH}"
-# seed
-OPTS+=" --seed ${SEED}"
-# deepspeed
-OPTS+=" --deepspeed"
-OPTS+=" --deepspeed_config ${BASE_PATH}/configs/deepspeed/ds_config.json"
-# type
-OPTS+=" --type kd"
-# gen
-OPTS+=" --do-sample"
-OPTS+=" --top-k 0"
-OPTS+=" --top-p 1.0"
-OPTS+=" --temperature 1.0"
-
-
-export NCCL_DEBUG=""
-export WANDB_DISABLED=True
-export TF_CPP_MIN_LOG_LEVEL=3
-export PYTHONPATH=${BASE_PATH}
-CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/finetune.py ${OPTS} $@"
-
-echo ${CMD}
-echo "PYTHONPATH=${PYTHONPATH}"
-# mkdir -p ${SAVE_PATH}
-# ${CMD}
+# Finetune model
+torchrun --nproc_per_node ${NPROCS} --nnodes 1 --node_rank 0 --master_addr localhost --master_port 2012 \
+finetune.py --base-path ${BASE_PATH} \
+--model-path ${MODEL_PATH} \
+--teacher-model-path ${TEACHER_PATH} \
+--ckpt-name llama-8B-Student \
+--teacher-ckpt-name llama-70B-Teacher \
+--teacher-model-fp16 \
+--n-gpu ${NPROCS} \
+--model-type llama \
+--gradient-checkpointing \
+--model-parallel --model-parallel-size ${NPROCS} \
+--data-dir processed_data/dolly/full/llama/ \
+--num-workers 4 \
+--dev-num 1000 \
+--lr 0.00001 \
+--batch-size 8 \
+--eval-batch-size 8 \
+--gradient-accumulation-steps 1 \
+--warmup-iters 0 --lr-decay-style cosine --weight-decay 1e-2 --clip-grad 1.0 \
+--epochs 10 \
+--kd-ratio 0.5 \
+--max-length 512 \
+--max-prompt-length 256 \
+--do-train --do-valid --eval-gen \
+--save-interval -1 --eval-interval -1 --log-interval 4 --mid-log-num -1 \
+--save results/llama/train/kd \
+--seed 10 \
+--deepspeed --deepspeed_config configs/deepspeed/ds_config.json \
+--type kd \
+--do-sample --top-k 0 --top-p 1.0 --temperature 1.0
