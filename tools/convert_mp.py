@@ -8,7 +8,7 @@ from transformers import (
     decrease_mp_gptj, increase_mp_gptj,
     decrease_mp_llama, increase_mp_llama,
     decrease_mp_mistral, increase_mp_mistral,
-    decrease_mp_qwen, increase_mp_qwen,
+    # decrease_mp_qwen, increase_mp_qwen,
 )
 
 func_map = {
@@ -17,7 +17,7 @@ func_map = {
     "llama": (decrease_mp_llama, increase_mp_llama),
     "llama2": (decrease_mp_llama, increase_mp_llama),
     "mistral": (decrease_mp_mistral, increase_mp_mistral),
-    "qwen": (decrease_mp_qwen, increase_mp_qwen),
+    # "qwen": (decrease_mp_qwen, increase_mp_qwen),
 }
 
 
