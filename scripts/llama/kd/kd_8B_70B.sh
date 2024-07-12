@@ -62,8 +62,8 @@ OPTS+=" --epochs 3"
 OPTS+=" --kd-ratio 0.5"
 
 # length
-OPTS+=" --max-length 512"
-OPTS+=" --max-prompt-length 256"
+OPTS+=" --max-length 4096"
+OPTS+=" --max-prompt-length 3500"
 
 # runtime
 OPTS+=" --do-train"
