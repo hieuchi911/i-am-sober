@@ -55,11 +55,11 @@ class LMTrainDataset(Dataset):
         source_len = 1
         
         prompt = None
-        if 65535 in input_ids:
+        if 65535 in input_ids:  # -1 in uint16, which separates prompt and response as done in process_data_<dataset>.py
             source_len = np.where(input_ids==65535)[0][0]
-            prompt = input_ids[:source_len] #for uint16 (others)
+            prompt = input_ids[:source_len]
             input_ids = np.concatenate([input_ids[:source_len], input_ids[source_len+1:]], axis=0)
-        elif 4294967295 in input_ids: #for uint32 (qwen, gemma, and etc)
+        elif 4294967295 in input_ids: #for uint32 (qwen, gemma, and etc): -1 in uint32
             source_len = np.where(input_ids==4294967295)[0][0]
             prompt = input_ids[:source_len]
             input_ids = np.concatenate([input_ids[:source_len], input_ids[source_len+1:]], axis=0)

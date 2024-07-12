@@ -91,6 +91,9 @@ def add_data_args(parser: argparse.ArgumentParser):
     group.add_argument("--eval-ppl", action="store_true")
     group.add_argument("--eval-rw", action="store_true")
     group.add_argument("--eval-gen", action="store_true")
+
+    group.add_argument("--hugg-data-id", type=str, default=None)
+    group.add_argument("--hugg-data-subset", type=str, default=None)
     
     group.add_argument("--only-prompt", action="store_true")
     return parser
