@@ -15,14 +15,14 @@ PYTHONPATH=${BASE_PATH} python ${BASE_PATH}/tools/process_data_cnn_dailymail.py 
     --dev-num 1000 \
     --model-type llama
 
-# Change Model Parallel Size
-python tools/convert_mp.py --input_path ${MODEL_PATH} --source_mp_size 1 --target_mp_size ${NPROCS} --model_type llama --exist_ok
-python tools/convert_mp.py --input_path ${TEACHER_PATH} --source_mp_size 1 --target_mp_size ${NPROCS} --model_type llama --exist_ok
-
 NPROCS=${4-2} # number of GPUs to use
 NNODES=1
 MODEL_PARALLEL_SIZE=4
 BS=8
+
+# Change Model Parallel Size
+python tools/convert_mp.py --input_path ${MODEL_PATH} --source_mp_size 1 --target_mp_size ${NPROCS} --model_type llama --exist_ok
+python tools/convert_mp.py --input_path ${TEACHER_PATH} --source_mp_size 1 --target_mp_size ${NPROCS} --model_type llama --exist_ok
 
 DISTRIBUTED_ARGS="--nproc_per_node ${NPROCS} \
                   --nnodes 1 \
