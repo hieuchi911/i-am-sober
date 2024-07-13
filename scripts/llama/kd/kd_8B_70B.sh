@@ -62,7 +62,7 @@ OPTS+=" --teacher-ckpt-name ${TEACHER_MODEL_NAME}"
 OPTS+=" --teacher-model-fp16"
 OPTS+=" --n-gpu ${NPROCS}"
 OPTS+=" --model-type ${MODEL_TYPE}"
-# OPTS+=" --gradient-checkpointing"
+OPTS+=" --gradient-checkpointing"
 OPTS+=" --model-parallel"
 OPTS+=" --model-parallel-size ${MODEL_PARALLEL_SIZE}"
 
