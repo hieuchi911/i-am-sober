@@ -12,5 +12,9 @@
         "loss_scale_window": 2000,
         "hysteresis": 4
     },
+    "wandb": {
+        "enabled": true,
+        "project": "i_am_sober"
+    },
     "wall_clock_breakdown": false
 }
