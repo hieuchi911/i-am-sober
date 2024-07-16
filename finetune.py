@@ -9,6 +9,7 @@ import torch.distributed as dist
 from torch.utils.data import DataLoader, DistributedSampler
 from torch.optim import AdamW
 import deepspeed
+import wandb
 
 import random
 import json
@@ -247,7 +248,7 @@ def finetune(args, tokenizer: AutoTokenizer, model: deepspeed.DeepSpeedEngine, o
         dataset['train'], sampler=sampler, batch_size=args.batch_size, num_workers=args.num_workers, collate_fn=dataset["train"].collate)
 
     step, global_step = 1, 1
-    total_loss, total_distil_loss, total_time = 0.0, 0.0, 0.0
+    total_loss, total_lm_loss, total_distil_loss, total_time = 0.0, 0.0, 0.0, 0.0
     
     evaluate(args, tokenizer, model, dataset["dev"], "dev", 0, device)
     for epoch in range(args.epochs):
@@ -288,6 +289,10 @@ def finetune(args, tokenizer: AutoTokenizer, model: deepspeed.DeepSpeedEngine, o
 
             global_distil_loss = 0
             if teacher_model is not None:
+                dist.all_reduce(lm_loss, dist.ReduceOp.SUM, group=dp_group)
+                global_lm_loss = lm_loss.item() / dp_world_size
+                total_lm_loss += global_lm_loss
+
                 dist.all_reduce(distil_loss, dist.ReduceOp.SUM, group=dp_group)
                 global_distil_loss = distil_loss.item() / dp_world_size
                 total_distil_loss += global_distil_loss
@@ -330,7 +335,22 @@ def finetune(args, tokenizer: AutoTokenizer, model: deepspeed.DeepSpeedEngine, o
                 print_rank(args.save)
                 print_rank("*" * 100)
                 save_rank(log_str, os.path.join(args.save, "log.txt"))
-                total_loss, total_distil_loss, total_time = 0.0, 0.0, 0.0
+
+                if dist.get_rank() == 0:
+                    if teacher_model is not None:
+                        wandb.log({
+                            'KD/loss': total_loss / (args.log_interval * args.gradient_accumulation_steps),
+                            'KD/lm_loss': total_lm_loss / (args.log_interval * args.gradient_accumulation_steps),
+                            'KD/ds_loss': total_distil_loss / (args.log_interval * args.gradient_accumulation_steps),
+                            'train_step': step
+                        })
+                    else:
+                        wandb.log({
+                            'Train/loss': total_loss / (args.log_interval * args.gradient_accumulation_steps),
+                            'train_step': step
+                        })
+
+                total_loss, total_lm_loss, total_distil_loss, total_time = 0.0, 0.0, 0.0, 0.0
             
             # Checkpointing
             if args.save and args.save_interval and global_step % args.save_interval == 0 and step % args.gradient_accumulation_steps == 0:
@@ -460,7 +480,7 @@ def evaluate(args, tokenizer, model, dataset: LMTrainDataset, split, epoch, devi
             references = dataset.answers
             responses = responses[:len(references)]
             
-            res = compute_metrics(responses, references)
+            res = compute_metrics(responses, references, args.task)
         
             eval_dir = os.path.join(args.save, "eval", str(epoch))
             print_rank(eval_dir)
@@ -476,6 +496,13 @@ def evaluate(args, tokenizer, model, dataset: LMTrainDataset, split, epoch, devi
         log_str = f"{split} | avg_loss: {avg_loss} | {res}"
         print_rank(log_str)
         save_rank(log_str, os.path.join(args.save, "log.txt"))
+
+        wandb.log({
+            'Eval/loss': avg_loss,
+            'Eval/exact_match': res["exact_match"],
+            f'Eval/rougeL{args.task}': res["rougeL"],
+            'val_step': epoch
+        })
 
 
 def main():
@@ -532,7 +559,15 @@ def main():
             args.eval_interval = args.train_iters_per_epoch
     
     model, optimizer, lr_scheduler = setup_model_and_optimizer(args, ds_config, device, set_optim=args.do_train)
-    
+    if dist.get_rank() == 0:
+        wandb.define_metric("KD/loss", step_metric="train_step")
+        wandb.define_metric("KD/lm_loss", step_metric="train_step")
+        wandb.define_metric("KD/ds_loss", step_metric="train_step")
+
+        wandb.define_metric("Eval/loss", step_metric="val_step")
+        wandb.define_metric("Eval/exact_match", step_metric="val_step")
+        wandb.define_metric(f"Eval/rougeL{args.task}", step_metric="val_step")
+
     if args.teacher_model_type is None:
         args.teacher_model_type = args.model_type
     
