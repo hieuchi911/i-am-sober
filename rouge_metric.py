@@ -6,7 +6,8 @@ from rouge_score import rouge_scorer
 from transformers import AutoTokenizer
 
 
-default_rouge_scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
+default_rouge_scorer = {"qa": rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True),
+                        "summ": rouge_scorer.RougeScorer(['rougeLsum'], use_stemmer=True)}
 
 # adapted the flowing from Squad v1.1 evaluation, without removing the articles.
 def normalize_answer(s):
@@ -25,25 +26,25 @@ def normalize_answer(s):
     return white_space_fix(remove_punc(lower(s)))
 
 
-def exact_match(prediction, ground_truth, xlingual=False):
+def exact_match(prediction, ground_truth, xlingual=False, task="qa"):
     return (normalize_answer(prediction) == normalize_answer(ground_truth))
 
 
-def rouge(prediction, ground_truth, xlingual=False):
-    scorer = default_rouge_scorer
+def rouge(prediction, ground_truth, xlingual=False, task="qa"):
+    scorer = default_rouge_scorer[task]
     scores = scorer.score(prediction=prediction, target=ground_truth)
-    return scores["rougeL"].fmeasure
+    return scores["rougeLsum"].fmeasure if task=="summ" else scores["rougeL"].fmeasure
 
 
-def metric_max_over_ground_truths(metric_fn, prediction, ground_truths, xlingual=False):
+def metric_max_over_ground_truths(metric_fn, prediction, ground_truths, xlingual=False, task="qa"):
     scores_for_ground_truths = []
     for ground_truth in ground_truths:
-        score = metric_fn(prediction, ground_truth, xlingual=xlingual)
+        score = metric_fn(prediction, ground_truth, xlingual=xlingual, task=task)
         scores_for_ground_truths.append(score)
     return max(scores_for_ground_truths)
 
 
-def compute_metrics(predictions, references, xlingual=False):
+def compute_metrics(predictions, references, xlingual=False, task="qa"):
     # assert len(predictions) == len(references), f"# of predictions {len(predictions)} doesn't match # of references {len(references)}."
     
     min_length = min(len((predictions)), len(references))
@@ -57,7 +58,7 @@ def compute_metrics(predictions, references, xlingual=False):
             exact_match, prediction=pred, ground_truths=gold, xlingual=xlingual
         )
         rougeL += metric_max_over_ground_truths(
-            rouge, prediction=pred, ground_truths=gold, xlingual=xlingual
+            rouge, prediction=pred, ground_truths=gold, xlingual=xlingual, task=task
         )
     em = 100.0 * em / len(references)
     rougeL = 100.0 * rougeL / len(references)
