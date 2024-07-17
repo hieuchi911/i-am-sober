@@ -55,15 +55,14 @@ def main():
     args.processed_data_dir = os.path.join(args.processed_data_dir, args.model_type)
 
     os.makedirs(args.processed_data_dir, exist_ok=True)
-    # abisee/cnn_dailymail:  article | highlights | id
     
     train = load_dataset(args.hugg_data_id, args.hugg_data_subset, split="train")
-    train = train.shuffle(seed=42)
-    train = train.select(range(15000))
+    train = train.shuffle(seed=args.seed_data)
     train_dict = train.to_dict()
 
     if args.dev_num > 0:
-        val = load_dataset(args.hugg_data_id, args.hugg_data_subset, split="validation").select(range(args.dev_num))
+        val = load_dataset(args.hugg_data_id, args.hugg_data_subset, split="validation")
+        val = val.shuffle(seed=args.seed_data)
         val_dict = val.to_dict()
         all_data = {
             "valid": [{key: value[i] for key, value in val_dict.items()} for i in range(len(val))],
@@ -133,6 +132,9 @@ def main():
                 print(f"Processed {lid} documents. {inst_num} instances.",
                     f"({lid/elapsed} docs/s, {mbs} MB/s).",
                     file=sys.stderr)
+
+            if (len(prompt_lens) == 15000 and split=="train") or (len(prompt_lens) == 1000 and split=="valid"):
+                break
 
         # finish compressing tokenized data into `bin_file`, and generate meta information into `idx_file`
         binary_builder.finalize(idx_file)
