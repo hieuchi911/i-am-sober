@@ -133,7 +133,7 @@ def main():
                     f"({lid/elapsed} docs/s, {mbs} MB/s).",
                     file=sys.stderr)
 
-            if (len(prompt_lens) == 15000 and split=="train") or (len(prompt_lens) == 1000 and split=="valid"):
+            if (len(prompt_lens) == args.train_size and split=="train") or (len(prompt_lens) == args.dev_num and split=="valid"):
                 break
 
         # finish compressing tokenized data into `bin_file`, and generate meta information into `idx_file`
