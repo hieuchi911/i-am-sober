@@ -527,6 +527,7 @@ def main():
     ds_config["train_micro_batch_size_per_gpu"] = args.batch_size
     ds_config["gradient_clipping"] = args.clip_grad
     ds_config["steps_per_print"] = 10000000
+    ds_config["wandb"]["project"] = os.environ.get("WANDB_PROJECT", "deepspeed")
     
     if not args.do_train:
         ds_config["zero_optimization"]["stage"] = 0

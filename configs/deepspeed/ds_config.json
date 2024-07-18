@@ -13,8 +13,7 @@
         "hysteresis": 4
     },
     "wandb": {
-        "enabled": true,
-        "project": "i_am_sober"
+        "enabled": true
     },
     "wall_clock_breakdown": false
 }
