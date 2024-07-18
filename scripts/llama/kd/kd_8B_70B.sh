@@ -84,7 +84,7 @@ OPTS+=" --model-parallel-size ${MODEL_PARALLEL_SIZE}"
 
 # data
 OPTS+=" --data-dir ${DATA_DIR}/${MODEL_TYPE}/"
-OPTS+=" --task summ"
+OPTS+=" --task ${TASK}"
 OPTS+=" --num-workers 1"
 OPTS+=" --dev-num -1"
 
