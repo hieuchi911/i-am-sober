@@ -572,6 +572,7 @@ def main():
         args.teacher_model_type = args.model_type
     
     if args.teacher_model_path is not None:
+        args.kd_ratio = args.kd_ratio / (1 + args.kd_ratio)
         teacher_model = get_teacher_model(args, device)
     else:
         teacher_model = None
