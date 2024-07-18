@@ -116,6 +116,7 @@ OPTS+=" --save ${SAVE_PATH}"
 
 # seed
 OPTS+=" --seed ${SEED}"
+OPTS+=" --seed-order ${SEED_ORDER}"
 
 # deepspeed
 OPTS+=" --deepspeed"
@@ -136,7 +137,7 @@ export WANDB_DISABLED=False
 export WANDB_SILENT=1
 export WANDB_API_KEY=${WANDB_KEY}
 export WANDB_PROJECT=${WANDB_PRJ}
-export WANDB_NAME="kd-lr${LR}_bs${BS}_kd${KD_RATIO}"
+export WANDB_NAME="kd-${MODEL_TYPE}-lr${LR}_bs${BS}_kd${KD_RATIO}"
 
 export TF_CPP_MIN_LOG_LEVEL=3
 export PYTHONPATH=${BASE_PATH}
