@@ -7,13 +7,13 @@ WANDB_PRJ="i_am_sober"
 # model
 MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"  # path to model snapshots
 MODEL_NAME="llama-8B-Student"
-TEACHER_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"    # path to model snapshots
+TEACHER_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-70B-Instruct/snapshots/7129260dd854a80eb10ace5f61c20324b472b31c/"    # path to model snapshots
 TEACHER_MODEL_NAME="llama-70B-Teacher"
 MODEL_TYPE="llama"
 # hp
-LR=(5e-5 1e-5 5e-6)
+LR=(5e-05 1e-05 5e-06)
 BS=(8 4)
-KD_RATIO=(0.1 1.0 10)
+KD_RATIO=(0.1 1.0 10.0)
 EVAL_BS=8
 EPOCHS=3
 GRAD_ACC=1
@@ -33,6 +33,25 @@ SEED_ORDER=10
 for l in ${LR[@]}; do
   for b in ${BS[@]}; do
     for r in ${KD_RATIO[@]}; do
+      # Skip successful runs, restart unfinished runs
+      directory="${SAVE_PATH}/e${EPOCHS}-bs${b}-lr${l}-G${GRAD_ACC}-N${NPROCS}-NN1-kd${r}-mp${MODEL_PARALLEL_SIZE}"
+      if [ -d "$directory/eval" ]; then
+        # Count the number of folders in the eval subdirectory
+        eval_folder_count=$(find "$directory/eval" -maxdepth 1 -type d | wc -l)
+        # Subtract 1 because find includes the parent directory in its count
+        let eval_folder_count=eval_folder_count-1
+        # Check if there are exactly ${EPOCHS} folders
+        if [ "$eval_folder_count" -eq "$EPOCHS" ]; then
+            echo "lr${l} - bs${b} - r_kd${r} skipped: ALREADY DONE!!!"
+            continue
+        fi
+        # eval not done yet
+        rm -r "${directory}"
+        echo "lr${l} - bs${b} - r_kd${r} unfinished: REMOVE AND RERUN!!! (dir removed: ${directory})"
+      elif [ -d "$directory" ]; then
+        rm -r "${directory}"
+      fi
+      echo "echo lr${l} - bs${b} - r_kd${r}: RUNNING"
       bash scripts/llama/kd/kd_8B_70B.sh --nprocs ${NPROCS} --model_parallel_size ${MODEL_PARALLEL_SIZE} \
            --base_path ${BASE_PATH} --wandb_key ${WANDB_KEY} --wandb_prj ${WANDB_PRJ} --model_path ${MODEL_PATH} \
            --model_name ${MODEL_NAME} --teacher_path ${TEACHER_PATH} --teacher_model_name ${TEACHER_MODEL_NAME} \
