@@ -1,13 +1,13 @@
 #!/bin/bash
 NPROCS=2 # number of GPUs to use
 MODEL_PARALLEL_SIZE=2
-BASE_PATH="/home1/hieutn/cs566/i-am-sober" # path to i-am-sober folder
-WANDB_KEY="<WANDB-API-KEY>"
+BASE_PATH="/home/zihaoh/repos/i-am-sober" # path to i-am-sober folder
+WANDB_KEY="38bf2bd38b4faad2cf7dd886c99c77f2bcc80a5c"
 WANDB_PRJ="i_am_sober"
 # model
-MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"  # path to model snapshots
+MODEL_PATH="/home/shared/transformers_cache/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/" # path to model snapshots
 MODEL_NAME="llama-8B-Student"
-TEACHER_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-70B-Instruct/snapshots/7129260dd854a80eb10ace5f61c20324b472b31c/"    # path to model snapshots
+TEACHER_PATH="/home/shared/transformers_cache/hub/models--meta-llama--Meta-Llama-3-70B-Instruct/snapshots/7129260dd854a80eb10ace5f61c20324b472b31c/" # path to model snapshots
 TEACHER_MODEL_NAME="llama-70B-Teacher"
 MODEL_TYPE="llama"
 # hp
