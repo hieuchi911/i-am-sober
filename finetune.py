@@ -561,9 +561,12 @@ def main():
     
     model, optimizer, lr_scheduler = setup_model_and_optimizer(args, ds_config, device, set_optim=args.do_train)
     if dist.get_rank() == 0:
-        wandb.define_metric("KD/loss", step_metric="train_step")
-        wandb.define_metric("KD/lm_loss", step_metric="train_step")
-        wandb.define_metric("KD/ds_loss", step_metric="train_step")
+        if args.teacher_model_path is not None:
+            wandb.define_metric("KD/loss", step_metric="train_step")
+            wandb.define_metric("KD/lm_loss", step_metric="train_step")
+            wandb.define_metric("KD/ds_loss", step_metric="train_step")
+        else:
+            wandb.define_metric("Train/loss", step_metric="train_step")
 
         wandb.define_metric("Eval/loss", step_metric="val_step")
         wandb.define_metric("Eval/exact_match", step_metric="val_step")
