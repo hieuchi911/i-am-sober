@@ -2,12 +2,6 @@
 NPROCS=2 # number of GPUs to use
 MODEL_PARALLEL_SIZE=2
 
-DISTRIBUTED_ARGS="--nproc_per_node ${NPROCS} \
-                  --nnodes 1 \
-                  --node_rank 0 \
-                  --master_addr localhost \
-                  --master_port 2012"
-
 BASE_PATH="/home1/hieutn/cs566/i-am-sober" # path to i-am-sober folder
 WANDB_KEY="<WANDB-API-KEY>"
 WANDB_PRJ="i_am_sober"
@@ -61,6 +55,12 @@ while [[ "$#" -gt 0 ]]; do
     esac
     shift
 done
+
+DISTRIBUTED_ARGS="--nproc_per_node ${NPROCS} \
+                  --nnodes 1 \
+                  --node_rank 0 \
+                  --master_addr localhost \
+                  --master_port 2012"
 
 OPTS=""
 # model
