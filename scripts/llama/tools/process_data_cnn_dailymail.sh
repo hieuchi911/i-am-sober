@@ -1,6 +1,6 @@
-BASE_PATH="/home1/hieutn/cs566/i-am-sober" # path to i-am-sober folder
+BASE_PATH="/home/zihaoh/repos/i-am-sober" # path to i-am-sober folder
 # model
-MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"  # path to model snapshots
+MODEL_PATH="/home/shared/transformers_cache/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"  # path to model snapshots
 MODEL_TYPE="llama"
 # length
 MAX_LENGTH=1024
