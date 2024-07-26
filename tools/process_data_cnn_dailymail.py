@@ -86,8 +86,8 @@ def main():
         
         bin_file = os.path.join(args.processed_data_dir, f"{split}_{0}.bin")
         idx_file = os.path.join(args.processed_data_dir, f"{split}_{0}.idx")
-
-        if args.model_type!="qwen":
+        tokenizer_temp = AutoTokenizer.from_pretrained(args.model_path)
+        if tokenizer_temp.vocab_size <= 65535:
             binary_builder = make_builder(bin_file, impl="mmap", dtype=np.uint16)
         else:
             binary_builder = make_builder(bin_file, impl="mmap", dtype=np.uint32)
