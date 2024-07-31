@@ -27,6 +27,7 @@ DATA_DIR=${BASE_PATH}/processed_data/cnn_dailymail/full-${MAX_LENGTH}-${MAX_PROM
 TASK="summ"
 # runtime
 SAVE_PATH="${BASE_PATH}/results/${MODEL_TYPE}/train/kd"
+SAVE_INTERVAL=-1
 # seed
 SEED=10
 SEED_ORDER=10
@@ -55,6 +56,7 @@ while [[ "$#" -gt 0 ]]; do
         --max_length) MAX_LENGTH=$2; shift ;;
         --max_prompt_length) MAX_PROMPT_LENGTH=$2; shift ;;
         --save_path) SAVE_PATH=$2; shift ;;
+        --save_interval) SAVE_INTERVAL=$2; shift ;;
         --seed) SEED=$2; shift ;;
         --seed_order) SEED_ORDER=$2; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
@@ -108,7 +110,7 @@ OPTS+=" --max-prompt-length ${MAX_PROMPT_LENGTH}"
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
 OPTS+=" --eval-gen"
-OPTS+=" --save-interval -1"
+OPTS+=" --save-interval ${SAVE_INTERVAL}"
 OPTS+=" --eval-interval -1"
 OPTS+=" --log-interval 4"
 OPTS+=" --mid-log-num -1"

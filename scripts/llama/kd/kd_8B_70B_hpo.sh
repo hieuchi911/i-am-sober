@@ -25,6 +25,7 @@ DATA_DIR=${BASE_PATH}/processed_data/cnn_dailymail/full-${MAX_LENGTH}-${MAX_PROM
 TASK="summ"
 # runtime
 SAVE_PATH="${BASE_PATH}/results/${MODEL_TYPE}/train/kd"
+SAVE_INTERVAL=-1
 # seed
 SEED=10
 SEED_ORDER=10
@@ -57,8 +58,8 @@ for l in ${LR[@]}; do
            --model_name ${MODEL_NAME} --teacher_path ${TEACHER_PATH} --teacher_model_name ${TEACHER_MODEL_NAME} \
            --model_type ${MODEL_TYPE} --data_dir ${DATA_DIR} --task ${TASK} --lr ${l} --bs ${b} --kd_ratio ${r} \
            --eval_bs ${EVAL_BS} --epochs ${EPOCHS} --grad_acc ${GRAD_ACC} --max_length ${MAX_LENGTH} \
-           --max_prompt_length ${MAX_PROMPT_LENGTH} --save_path ${SAVE_PATH} --seed ${SEED} \
-           --seed_order ${SEED_ORDER}
+           --max_prompt_length ${MAX_PROMPT_LENGTH} --save_path ${SAVE_PATH} --save_interval ${SAVE_INTERVAL} \
+           --seed ${SEED} --seed_order ${SEED_ORDER}
     done
   done
 done
