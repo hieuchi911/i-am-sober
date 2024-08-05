@@ -187,6 +187,7 @@ def add_gen_args(parser: argparse.ArgumentParser):
     group.add_argument("--num-beams", type=int, default=1)
     group.add_argument("--temperature", type=float, default=1)
     
+    group.add_argument("--vllm", action="store_true")
     return parser
 
 

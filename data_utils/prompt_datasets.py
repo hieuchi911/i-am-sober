@@ -61,7 +61,8 @@ class PromptDataset(Dataset):
         data_origin = [json.loads(line) for line in lines]
         data = []
         print_rank("Loading Data")
-        for d in tqdm(data_origin, disable=(get_rank() != 0)):
+        disable = False if self.args.vllm else get_rank() != 0
+        for d in tqdm(data_origin, disable=disable):
             prompt = d["prompt"].replace("<n>", "\n")
             prompt_ids = self.tokenizer.encode(prompt, add_special_tokens=False)
             output_ids = None
