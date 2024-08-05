@@ -50,7 +50,7 @@ class Encoder(object):
                 )
             prompt = template.format(instruction=line["instruction"], input=line["input"])
             
-        response = line["output"]
+        response = line["gen_answer"] if "gen_answer" in line else line["output"]
         prompt_tokens = Encoder.tokenizer.encode(prompt, add_special_tokens=False)
         full_tokens = Encoder.tokenizer.encode(prompt + response, add_special_tokens=False) + [Encoder.tokenizer.eos_token_id]
         response_tokens = full_tokens[len(prompt_tokens):]
@@ -96,7 +96,8 @@ def main():
         bin_file = os.path.join(args.processed_data_dir, f"{split}_{0}.bin")
         idx_file = os.path.join(args.processed_data_dir, f"{split}_{0}.idx")
 
-        if args.model_type!="qwen":
+        tokenizer_temp = AutoTokenizer.from_pretrained(args.model_path)
+        if tokenizer_temp.vocab_size <= 65535:
             binary_builder = make_builder(bin_file, impl="mmap", dtype=np.uint16)
         else:
             binary_builder = make_builder(bin_file, impl="mmap", dtype=np.uint32)
@@ -127,7 +128,7 @@ def main():
                 "instruction": line["instruction"],
                 "prompt": prompt_str,
                 "input": line["input"],
-                "output": line["output"],
+                "output": line["gen_answer"] if "gen_answer" in line else line["output"],
             }) + "\n")
 
             prompt_lens.append(len(prompt))
