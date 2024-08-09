@@ -7,14 +7,14 @@ WANDB_KEY="<WANDB-API-KEY>"
 WANDB_PRJ="i_am_sober"
 
 # model
-MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590/"  # path to model snapshots
-MODEL_NAME="llama-7B-baseline"
+MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Llama-2-13b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590/"  # path to model snapshots
+MODEL_NAME="llama-13B-baseline"
 MODEL_TYPE="llama2"
 # hp
 BS=2
 EVAL_BS=2
 EPOCHS=3
-LR=0.00001
+LR=1e-05
 GRAD_ACC=1
 # length
 MAX_LENGTH=1024

@@ -1,7 +1,7 @@
 BASE_PATH="/home/zihaoh/repos/i-am-sober" # path to i-am-sober folder
 # model
-MODEL_PATH="/home/shared/transformers_cache/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"  # path to model snapshots
-MODEL_TYPE="llama"
+MODEL_PATH="/home/shared/transformers_cache/hub/<llama-7B-snapshots>"  # path to model snapshots
+MODEL_TYPE="llama2"
 # length
 MAX_LENGTH=1024
 MAX_PROMPT_LENGTH=512
