@@ -32,6 +32,7 @@ parallel_model_map = {
     "gpt2": ParallelGPT2LMHeadModel,
     "llama": ParallelLlamaForCausalLM,
     "llama2": ParallelLlamaForCausalLM,
+    "llama3": ParallelLlamaForCausalLM,
     "mistral": ParallelMistralForCausalLM,
     "qwen": ParallelQWenLMHeadModel,
 }
@@ -215,7 +216,7 @@ def get_optimizer_params_peft(args, model: nn.Module):
 
 def get_tokenizer(args):
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
-    if args.model_type in ["gpt2", "opt", "llama", "gptj", "llama2", "mistral"]:
+    if args.model_type in ["gpt2", "opt", "gptj", "llama", "llama2", "llama3", "mistral"]:
         tokenizer.pad_token_id = tokenizer.eos_token_id
     elif args.model_type=="qwen":
         tokenizer.pad_token_id = 151646

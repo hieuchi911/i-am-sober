@@ -9,9 +9,9 @@ WANDB_PRJ="i_am_sober"
 # model
 MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"  # path to model snapshots
 MODEL_NAME="llama-8B-Student"
-TEACHER_PATH="/scratch1/hieutn/test-sft/"   # path to sft model
-TEACHER_MODEL_NAME="llama-8B-sft-Teacher"
-MODEL_TYPE="llama"
+TEACHER_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"    # path to model snapshots
+TEACHER_MODEL_NAME="llama-70B-Teacher"
+MODEL_TYPE="llama3"
 # hp
 BS=8
 EVAL_BS=8
@@ -23,10 +23,10 @@ KD_RATIO=1
 MAX_LENGTH=1024
 MAX_PROMPT_LENGTH=512
 # data
-DATA_DIR=${BASE_PATH}/processed_data/cnn_dailymail/pseudo
+DATA_DIR=${BASE_PATH}/processed_data/cnn_dailymail/full-${MAX_LENGTH}-${MAX_PROMPT_LENGTH}
 TASK="summ"
 # runtime
-SAVE_PATH="${BASE_PATH}/results/${MODEL_TYPE}/train/selfkd"
+SAVE_PATH="${BASE_PATH}/results/${MODEL_TYPE}/train/kd"
 SAVE_INTERVAL=-1
 # seed
 SEED=10
@@ -139,7 +139,7 @@ export WANDB_DISABLED=False
 export WANDB_SILENT=1
 export WANDB_API_KEY=${WANDB_KEY}
 export WANDB_PROJECT=${WANDB_PRJ}
-export WANDB_NAME="selfkd-${MODEL_TYPE}-lr${LR}_bs${BS}_kd${KD_RATIO}"
+export WANDB_NAME="kd-${MODEL_TYPE}-lr${LR}_bs${BS}_kd${KD_RATIO}"
 
 export TF_CPP_MIN_LOG_LEVEL=3
 export PYTHONPATH=${BASE_PATH}

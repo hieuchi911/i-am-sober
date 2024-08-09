@@ -3,13 +3,13 @@ NPROCS=2 # number of GPUs to use
 MODEL_PARALLEL_SIZE=2
 BASE_PATH="/home/zihaoh/repos/i-am-sober" # path to i-am-sober folder
 WANDB_KEY="8b07b9ebb0f0b08e31878929ec6324fdc098f376"
-WANDB_PRJ="i_am_sober_selfkd"
+WANDB_PRJ="i_am_sober"
 # model
 MODEL_PATH="/home/shared/transformers_cache/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/" # path to model snapshots
 MODEL_NAME="llama-8B-Student"
-TEACHER_PATH="" # path to sft model
-TEACHER_MODEL_NAME="llama-8B-sft-Teacher"
-MODEL_TYPE="llama"
+TEACHER_PATH="/home/shared/transformers_cache/hub/models--meta-llama--Meta-Llama-3-70B-Instruct/snapshots/7129260dd854a80eb10ace5f61c20324b472b31c/" # path to model snapshots
+TEACHER_MODEL_NAME="llama-70B-Teacher"
+MODEL_TYPE="llama3"
 # hp
 LR=(5e-05 1e-05 5e-06)
 BS=(8 4)
@@ -21,16 +21,16 @@ GRAD_ACC=1
 MAX_LENGTH=1024
 MAX_PROMPT_LENGTH=512
 # data
-DATA_DIR=${BASE_PATH}/processed_data/cnn_dailymail/pseudo
+DATA_DIR=${BASE_PATH}/processed_data/cnn_dailymail/full-${MAX_LENGTH}-${MAX_PROMPT_LENGTH}
 TASK="summ"
 # runtime
-SAVE_PATH="${BASE_PATH}/results/${MODEL_TYPE}/train/selfkd"
+SAVE_PATH="${BASE_PATH}/results/${MODEL_TYPE}/train/kd"
 SAVE_INTERVAL=-1
 # seed
 SEED=10
 SEED_ORDER=10
 
-# run scripts/llama/selfkd/selfkd_8B_70B.sh with all combinations of hyperparameters
+# run scripts/llama/kd/kd_8B_70B.sh with all combinations of hyperparameters
 for l in ${LR[@]}; do
   for b in ${BS[@]}; do
     for r in ${KD_RATIO[@]}; do
@@ -53,7 +53,7 @@ for l in ${LR[@]}; do
         rm -r "${directory}"
       fi
       echo "echo lr${l} - bs${b} - r_kd${r}: RUNNING"
-      bash scripts/llama/selfkd/selfkd_8B_70B.sh --nprocs ${NPROCS} --model_parallel_size ${MODEL_PARALLEL_SIZE} \
+      bash scripts/llama3/kd/kd_8B_70B.sh --nprocs ${NPROCS} --model_parallel_size ${MODEL_PARALLEL_SIZE} \
            --base_path ${BASE_PATH} --wandb_key ${WANDB_KEY} --wandb_prj ${WANDB_PRJ} --model_path ${MODEL_PATH} \
            --model_name ${MODEL_NAME} --teacher_path ${TEACHER_PATH} --teacher_model_name ${TEACHER_MODEL_NAME} \
            --model_type ${MODEL_TYPE} --data_dir ${DATA_DIR} --task ${TASK} --lr ${l} --bs ${b} --kd_ratio ${r} \

@@ -6,7 +6,7 @@ NPROCS=2
 BASE_PATH="/home/zihaoh/repos/i-am-sober" # path to i-am-sober folder
 MODEL_PATH="/scratch1/hieutn/test-sft/" # path to SFT model
 MODEL_NAME="llama-8B-sft"
-MODEL_TYPE="llama"
+MODEL_TYPE="llama3"
 # length
 MAX_LENGTH=1024
 MAX_PROMPT_LENGTH=512

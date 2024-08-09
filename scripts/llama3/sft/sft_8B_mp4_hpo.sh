@@ -7,7 +7,7 @@ WANDB_PRJ="i_am_sober"
 # model
 MODEL_PATH="/home/shared/transformers_cache/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/" # path to model snapshots
 MODEL_NAME="llama-8B-baseline"
-MODEL_TYPE="llama"
+MODEL_TYPE="llama3"
 # hp
 LR=(5e-05 1e-05 5e-06)
 BS=(8 4)
@@ -49,7 +49,7 @@ for l in ${LR[@]}; do
         rm -r "${directory}"
     fi
     echo "echo lr${l} - bs${b}: RUNNING"
-    bash scripts/llama/sft/sft_8B_mp4.sh --nprocs ${NPROCS} --model_parallel_size ${MODEL_PARALLEL_SIZE} \
+    bash scripts/llama3/sft/sft_8B_mp4.sh --nprocs ${NPROCS} --model_parallel_size ${MODEL_PARALLEL_SIZE} \
           --base_path ${BASE_PATH} --wandb_key ${WANDB_KEY} --wandb_prj ${WANDB_PRJ} --model_path ${MODEL_PATH} \
           --model_name ${MODEL_NAME} --model_type ${MODEL_TYPE} --data_dir ${DATA_DIR} --task ${TASK} --lr ${l} \
           --bs ${b} --eval_bs ${EVAL_BS} --epochs ${EPOCHS} --grad_acc ${GRAD_ACC} --max_length ${MAX_LENGTH} \
