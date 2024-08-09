@@ -16,6 +16,7 @@ func_map = {
     "gptj": (decrease_mp_gptj, increase_mp_gptj),
     "llama": (decrease_mp_llama, increase_mp_llama),
     "llama2": (decrease_mp_llama, increase_mp_llama),
+    "llama3": (decrease_mp_llama, increase_mp_llama),
     "mistral": (decrease_mp_mistral, increase_mp_mistral),
     # "qwen": (decrease_mp_qwen, increase_mp_qwen),
 }
