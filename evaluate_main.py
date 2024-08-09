@@ -138,7 +138,7 @@ def evaluate_main(args, tokenizer, model, dataset: PromptDataset, split, epoch, 
     query_strs = tokenizer.batch_decode(query_ids, skip_special_tokens=True)
     response_strs = tokenizer.batch_decode(response_ids, skip_special_tokens=True)
     
-    with open(os.path.join(args.save, "preds.txt"), "w") as f:
+    with open(os.path.join(args.save, "preds.txt"), "w", encoding='utf-8') as f:
         for q, r in zip(query_strs, response_strs):
             f.write(q.replace("\n", "<n>") + "\t\t" + r.replace("\n", "<n>") + "\n")
 
