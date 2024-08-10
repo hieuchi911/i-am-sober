@@ -49,7 +49,7 @@ for l in ${LR[@]}; do
         rm -r "${directory}"
     fi
     echo "echo lr${l} - bs${b}: RUNNING"
-    bash scripts/llama/sft/sft_8B_mp4.sh --nprocs ${NPROCS} --model_parallel_size ${MODEL_PARALLEL_SIZE} \
+    bash scripts/llama/sft/sft_13B_mp4.sh --nprocs ${NPROCS} --model_parallel_size ${MODEL_PARALLEL_SIZE} \
           --base_path ${BASE_PATH} --wandb_key ${WANDB_KEY} --wandb_prj ${WANDB_PRJ} --model_path ${MODEL_PATH} \
           --model_name ${MODEL_NAME} --model_type ${MODEL_TYPE} --data_dir ${DATA_DIR} --task ${TASK} --lr ${l} \
           --bs ${b} --eval_bs ${EVAL_BS} --epochs ${EPOCHS} --grad_acc ${GRAD_ACC} --max_length ${MAX_LENGTH} \
