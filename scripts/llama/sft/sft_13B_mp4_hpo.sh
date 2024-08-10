@@ -9,8 +9,8 @@ MODEL_PATH="/home/shared/transformers_cache/hub/<llama-13B-snapshots>" # path to
 MODEL_NAME="llama-13B-teacher"
 MODEL_TYPE="llama2"
 # hp
-LR=(5e-05 1e-05 5e-06)
-BS=(8 4)
+LR=(1e-05 5e-06)
+BS=(8)
 EVAL_BS=8
 EPOCHS=3
 GRAD_ACC=1
