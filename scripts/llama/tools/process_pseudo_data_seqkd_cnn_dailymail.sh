@@ -23,6 +23,6 @@ PYTHONPATH=${BASE_PATH} python3 ${BASE_PATH}/tools/process_data_dolly.py \
     --max-prompt-length ${MAX_PROMPT_LENGTH} \
     --dev-num ${DEV_NUM}
 
-cp ${BASE_PATH}/processed_data/cnn_dailymail/full-1024-512/llama/valid_0.bin ${BASE_PATH}/processed_data/cnn_dailymail/pseudo/${MODEL_TYPE}/
-cp ${BASE_PATH}/processed_data/cnn_dailymail/full-1024-512/llama/valid_0.idx ${BASE_PATH}/processed_data/cnn_dailymail/pseudo/${MODEL_TYPE}/
-cp ${BASE_PATH}/processed_data/cnn_dailymail/full-1024-512/llama/valid.jsonl ${BASE_PATH}/processed_data/cnn_dailymail/pseudo/${MODEL_TYPE}/
+cp ${BASE_PATH}/processed_data/cnn_dailymail/full-${MAX_LENGTH}-${MAX_PROMPT_LENGTH}/${MODEL_TYPE}/valid_0.bin ${BASE_PATH}/processed_data/cnn_dailymail/pseudo/${MODEL_TYPE}/
+cp ${BASE_PATH}/processed_data/cnn_dailymail/full-${MAX_LENGTH}-${MAX_PROMPT_LENGTH}/${MODEL_TYPE}/valid_0.idx ${BASE_PATH}/processed_data/cnn_dailymail/pseudo/${MODEL_TYPE}/
+cp ${BASE_PATH}/processed_data/cnn_dailymail/full-${MAX_LENGTH}-${MAX_PROMPT_LENGTH}/${MODEL_TYPE}/valid.jsonl ${BASE_PATH}/processed_data/cnn_dailymail/pseudo/${MODEL_TYPE}/
