@@ -22,5 +22,5 @@ do
     ARGS+=" --exist_ok"
     echo "python tools/convert_mp.py ${ARGS}"
     
-    # python tools/convert_mp.py ${ARGS}
+    python tools/convert_mp.py ${ARGS}
 done
