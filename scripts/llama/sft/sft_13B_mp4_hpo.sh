@@ -3,7 +3,7 @@ NPROCS=2 # number of GPUs to use
 MODEL_PARALLEL_SIZE=2
 BASE_PATH="/home/zihaoh/repos/i-am-sober" # path to i-am-sober folder
 WANDB_KEY="8b07b9ebb0f0b08e31878929ec6324fdc098f376"
-WANDB_PRJ="i_am_sober_sft13B"
+WANDB_PRJ="i_am_sober_dolly_sft13B"
 # model
 MODEL_PATH="/home/shared/transformers_cache/hub/<llama-13B-snapshots>" # path to model snapshots
 MODEL_NAME="llama-13B-teacher"
