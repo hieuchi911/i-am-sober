@@ -6,7 +6,7 @@ from rouge_score import rouge_scorer
 from transformers import AutoTokenizer
 
 
-default_rouge_scorer = {"qa": rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True),
+default_rouge_scorer = {"general": rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True),
                         "summ": rouge_scorer.RougeScorer(['rougeLsum'], use_stemmer=True)}
 
 # adapted the flowing from Squad v1.1 evaluation, without removing the articles.
@@ -26,17 +26,17 @@ def normalize_answer(s):
     return white_space_fix(remove_punc(lower(s)))
 
 
-def exact_match(prediction, ground_truth, xlingual=False, task="qa"):
+def exact_match(prediction, ground_truth, xlingual=False, task="general"):
     return (normalize_answer(prediction) == normalize_answer(ground_truth))
 
 
-def rouge(prediction, ground_truth, xlingual=False, task="qa"):
+def rouge(prediction, ground_truth, xlingual=False, task="general"):
     scorer = default_rouge_scorer[task]
     scores = scorer.score(prediction=prediction, target=ground_truth)
     return scores["rougeLsum"].fmeasure if task=="summ" else scores["rougeL"].fmeasure
 
 
-def metric_max_over_ground_truths(metric_fn, prediction, ground_truths, xlingual=False, task="qa"):
+def metric_max_over_ground_truths(metric_fn, prediction, ground_truths, xlingual=False, task="general"):
     scores_for_ground_truths = []
     for ground_truth in ground_truths:
         score = metric_fn(prediction, ground_truth, xlingual=xlingual, task=task)
@@ -44,7 +44,7 @@ def metric_max_over_ground_truths(metric_fn, prediction, ground_truths, xlingual
     return max(scores_for_ground_truths)
 
 
-def compute_metrics(predictions, references, xlingual=False, task="qa"):
+def compute_metrics(predictions, references, xlingual=False, task="general"):
     # assert len(predictions) == len(references), f"# of predictions {len(predictions)} doesn't match # of references {len(references)}."
     
     min_length = min(len((predictions)), len(references))

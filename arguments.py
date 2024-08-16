@@ -94,7 +94,7 @@ def add_data_args(parser: argparse.ArgumentParser):
 
     group.add_argument("--hugg-data-id", type=str, default=None)
     group.add_argument("--hugg-data-subset", type=str, default=None)
-    group.add_argument("--task", type=str, default="qa")
+    group.add_argument("--task", type=str, default="general")
     group.add_argument("--train-size", type=int, default=15000)
     
     group.add_argument("--only-prompt", action="store_true")

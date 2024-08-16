@@ -480,7 +480,7 @@ def evaluate(args, tokenizer, model, dataset: LMTrainDataset, split, epoch, devi
             references = dataset.answers
             responses = responses[:len(references)]
             
-            res = compute_metrics(responses, references, args.task)
+            res = compute_metrics(responses, references, task=args.task)
         
             eval_dir = os.path.join(args.save, "eval", str(epoch))
             print_rank(eval_dir)
@@ -500,7 +500,7 @@ def evaluate(args, tokenizer, model, dataset: LMTrainDataset, split, epoch, devi
         wandb.log({
             'Eval/loss': avg_loss,
             'Eval/exact_match': res["exact_match"],
-            f'Eval/rougeL{args.task}': res["rougeL"],
+            f'Eval/rougeL{"summ" if args.task=="summ" else ""}': res["rougeL"],
             'val_step': epoch
         })
 
@@ -570,7 +570,7 @@ def main():
 
         wandb.define_metric("Eval/loss", step_metric="val_step")
         wandb.define_metric("Eval/exact_match", step_metric="val_step")
-        wandb.define_metric(f"Eval/rougeL{args.task}", step_metric="val_step")
+        wandb.define_metric(f"Eval/rougeL{'summ' if args.task=='summ' else ''}", step_metric="val_step")
 
     if args.teacher_model_type is None:
         args.teacher_model_type = args.model_type
