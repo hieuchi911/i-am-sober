@@ -1,16 +1,31 @@
-BASE_PATH=${1}
-
 export TF_CPP_MIN_LOG_LEVEL=3
 
-PYTHONPATH=${BASE_PATH} python3 ${BASE_PATH}/tools/process_data_dolly.py \
-    --data-dir ${BASE_PATH}/results/llama/gen/llama-13B/t1.0-l512 \
-    --processed-data-dir ${BASE_PATH}/processed_data/dolly/pseudo \
-    --model-path ${BASE_PATH}/checkpoints/llama-7B \
-    --data-process-workers 32 \
-    --max-prompt-length 256 \
-    --dev-num -1 \
-    --model-type llama-13B-sft
+BASE_PATH="/home/zihaoh/repos/i-am-sober" # path to i-am-sober folder
+# model
+MODEL_PATH=""  # path to model snapshots
+MODEL_NAME="llama-13B-sft"
+MODEL_TYPE="llama2"
+# length
+MAX_LENGTH=1024
+MAX_PROMPT_LENGTH=512
+# dataset
+DEV_NUM=-1
+DATA_NAMES=(dolly) # (dolly cnn_dailymail)
 
-cp ${BASE_PATH}/processed_data/dolly/full/llama/valid_0.bin ${BASE_PATH}/processed_data/dolly/pseudo/llama-13B-sft/
-cp ${BASE_PATH}/processed_data/dolly/full/llama/valid_0.idx ${BASE_PATH}/processed_data/dolly/pseudo/llama-13B-sft/
-cp ${BASE_PATH}/processed_data/dolly/full/llama/valid.jsonl ${BASE_PATH}/processed_data/dolly/pseudo/llama-13B-sft/
+for DATA_NAME in ${DATA_NAMES[@]}; do
+    DATA_DIR=${BASE_PATH}/results/${MODEL_TYPE}/gen/${DATA_NAME}/${MODEL_NAME}/t1.0-l${MAX_LENGTH}
+    PROCESSED_DATA_DIR=${BASE_PATH}/processed_data/${DATA_NAME}/pseudo
+
+    PYTHONPATH=${BASE_PATH} python3 ${BASE_PATH}/tools/process_data_dolly.py \
+        --data-dir ${DATA_DIR} \
+        --processed-data-dir ${PROCESSED_DATA_DIR} \
+        --model-path ${MODEL_PATH}\
+        --model-type ${MODEL_TYPE} \
+        --data-process-workers 32 \
+        --max-length ${MAX_LENGTH} \
+        --max-prompt-length ${MAX_PROMPT_LENGTH} \
+        --dev-num ${DEV_NUM}
+
+    cp ${BASE_PATH}/processed_data/${DATA_NAME}/full-${MAX_LENGTH}-${MAX_PROMPT_LENGTH}/${MODEL_TYPE}/valid_0.bin ${BASE_PATH}/processed_data/${DATA_NAME}/pseudo/${MODEL_TYPE}/
+    cp ${BASE_PATH}/processed_data/${DATA_NAME}/full-${MAX_LENGTH}-${MAX_PROMPT_LENGTH}/${MODEL_TYPE}/valid_0.idx ${BASE_PATH}/processed_data/${DATA_NAME}/pseudo/${MODEL_TYPE}/
+    cp ${BASE_PATH}/processed_data/${DATA_NAME}/full-${MAX_LENGTH}-${MAX_PROMPT_LENGTH}/${MODEL_TYPE}/valid.jsonl ${BASE_PATH}/processed_data/${DATA_NAME}/pseudo/${MODEL_TYPE}/
