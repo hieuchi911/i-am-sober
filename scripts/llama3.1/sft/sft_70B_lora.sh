@@ -100,6 +100,8 @@ OPTS+=" --mid-log-num -1"
 OPTS+=" --save ${SAVE_PATH}"
 # lora
 OPTS+=" --peft lora"
+# quantize
+OPTS+=" --quantized"
 # seed
 OPTS+=" --seed ${SEED}"
 OPTS+=" --seed-order ${SEED_ORDER}"
@@ -134,4 +136,4 @@ echo ${WANDB_API_KEY}
 echo ${WANDB_PROJECT}
 echo ${WANDB_NAME}
 echo "==========="
-# ${CMD}
+${CMD}
