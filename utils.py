@@ -10,33 +10,39 @@ import torch.nn as nn
 from datetime import timedelta
 import deepspeed
 from accelerate import load_checkpoint_and_dispatch, init_empty_weights
-from peft import get_peft_model, LoraConfig, TaskType, PeftModel
+from peft import get_peft_model, LoraConfig, TaskType, PeftModel, prepare_model_for_kbit_training
+try:
+    from transformers import (
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        AutoConfig,
+        ParallelOPTForCausalLM,
+        ParallelLlamaForCausalLM,
+        ParallelGPTJForCausalLM,
+        ParallelGPT2LMHeadModel,
+        ParallelMistralForCausalLM,
+        ParallelQWenLMHeadModel,
+        mpu,
+        BitsAndBytesConfig)
 
-
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    AutoConfig,
-    ParallelOPTForCausalLM,
-    ParallelLlamaForCausalLM,
-    ParallelGPTJForCausalLM,
-    ParallelGPT2LMHeadModel,
-    ParallelMistralForCausalLM,
-    ParallelQWenLMHeadModel,
-    mpu,)
-
-
-parallel_model_map = {
-    "opt": ParallelOPTForCausalLM,
-    "gptj": ParallelGPTJForCausalLM,
-    "gpt2": ParallelGPT2LMHeadModel,
-    "llama": ParallelLlamaForCausalLM,
-    "llama2": ParallelLlamaForCausalLM,
-    "llama3": ParallelLlamaForCausalLM,
-    "mistral": ParallelMistralForCausalLM,
-    "qwen": ParallelQWenLMHeadModel,
-}
-
+    parallel_model_map = {
+        "opt": ParallelOPTForCausalLM,
+        "gptj": ParallelGPTJForCausalLM,
+        "gpt2": ParallelGPT2LMHeadModel,
+        "llama": ParallelLlamaForCausalLM,
+        "llama2": ParallelLlamaForCausalLM,
+        "llama3": ParallelLlamaForCausalLM,
+        "llama3.1": ParallelLlamaForCausalLM,
+        "mistral": ParallelMistralForCausalLM,
+        "qwen": ParallelQWenLMHeadModel,
+    }
+except ImportError:
+    from transformers import (
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        AutoConfig,
+        BitsAndBytesConfig)
+    parallel_model_map = {}
 
 # Logging
 def print_args(args):
@@ -159,7 +165,23 @@ def get_model(args, device):
             dtype = torch.float32 if args.fp32 else torch.float16
         else:
             dtype = torch.float32 if args.fp32 else torch.bfloat16
-        model = AutoModelForCausalLM.from_pretrained(args.model_path, config=config, device_map={"": device}, torch_dtype=dtype)
+        # qlora finetune the model:
+        if args.quantized:
+            # 8bit quantization
+            model = AutoModelForCausalLM.from_pretrained(
+                args.model_path,
+                load_in_8bit=True,
+                torch_dtype=dtype,
+                device_map={"": device},
+            )
+            model = prepare_model_for_kbit_training(model)
+        else:
+            model = AutoModelForCausalLM.from_pretrained(
+                args.model_path,
+                config=config,
+                device_map={"": device},
+                torch_dtype=dtype
+            )
 
         if args.peft is not None:
             if args.peft == "lora":
@@ -216,7 +238,7 @@ def get_optimizer_params_peft(args, model: nn.Module):
 
 def get_tokenizer(args):
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
-    if args.model_type in ["gpt2", "opt", "gptj", "llama", "llama2", "llama3", "mistral"]:
+    if args.model_type in ["gpt2", "opt", "gptj", "llama", "llama2", "llama3", "llama3.1", "mistral"]:
         tokenizer.pad_token_id = tokenizer.eos_token_id
     elif args.model_type=="qwen":
         tokenizer.pad_token_id = 151646

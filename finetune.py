@@ -20,8 +20,11 @@ from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     AutoConfig,
-    mpu,
     GenerationConfig)
+try:
+    from transformers import mpu
+except ImportError:
+    pass
 
 from transformers import get_constant_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -58,18 +61,23 @@ def get_teacher_model(args, device):
         model = model.to(device)
     else:
         config.is_model_parallel = False
-        model = AutoModelForCausalLM.from_pretrained(
-            args.teacher_model_path, 
-            config=config, 
-            device_map={"": device}, 
-            torch_dtype=torch.float16 if args.model_type!="qwen" else torch.bfloat16
-        )
-
-        if args.peft is not None and args.teacher_peft_path is not None:
-            if args.peft == "lora":
-                model = PeftModel.from_pretrained(model, args.peft_path)
-            else:
-                raise NotImplementedError
+        if args.teacher_quantized:
+            # 8bit quantization
+            model = AutoModelForCausalLM.from_pretrained(
+                args.teacher_model_path,
+                load_in_8bit=True,
+                torch_dtype=torch.float16 if args.model_type!="qwen" else torch.bfloat16,
+                device_map={"": device},
+            )
+        else:
+            model = AutoModelForCausalLM.from_pretrained(
+                args.teacher_model_path,
+                config=config,
+                device_map={"": device},
+                torch_dtype=torch.float16 if args.model_type!="qwen" else torch.bfloat16
+            )
+        if args.teacher_peft_path is not None:
+            model = PeftModel.from_pretrained(model, args.teacher_peft_path)
         else:
             if dist.get_rank() == 0:
                 print(' > number of parameters: {}'.format(
@@ -454,9 +462,9 @@ def evaluate(args, tokenizer, model, dataset: LMTrainDataset, split, epoch, devi
                 
                 full_ids = gen_out.sequences
                 
-                full_ids = F.pad(
-                    full_ids,
-                    (0, args.max_length - full_ids.shape[1]),
+                full_ids = F.pad(   # pad to max_length
+                    full_ids,       # full_ids: the generated ids to be padded
+                    (0, args.max_length - full_ids.shape[1]), # (0, args.max_length - full_ids.shape[1]): the padding shape, 0 at the beginning and args.max_length - full_ids.shape[1] at the end
                     value=tokenizer.pad_token_id,
                 )
                 

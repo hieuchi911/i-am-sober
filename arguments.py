@@ -194,6 +194,8 @@ def add_gen_args(parser: argparse.ArgumentParser):
 def add_peft_args(parser: argparse.ArgumentParser):
     group = parser.add_argument_group('generation', 'generation configurations')
     
+    group.add_argument("--teacher-quantized", action="store_true")
+    group.add_argument("--quantized", action="store_true")
     group.add_argument("--peft", type=str, default=None)
     group.add_argument("--peft-lora-r", type=int, default=8)
     group.add_argument("--peft-lora-alpha", type=int, default=32)
