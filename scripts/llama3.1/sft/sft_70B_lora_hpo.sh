@@ -7,6 +7,7 @@ WANDB_PRJ="i_am_sober_dolly_sft_llama3.1"
 MODEL_PATH="/home/shared/transformers_cache/hub/<llama-70B-snapshots>" # path to model snapshots
 MODEL_NAME="llama-70B-teacher"
 MODEL_TYPE="llama3.1"
+QUANTIZE="quantized"
 # hp
 LR=(1e-05 5e-06)
 BS=(8 4)
@@ -54,7 +55,7 @@ for dataset in ${DATASETS[@]}; do
             --model_name ${MODEL_NAME} --model_type ${MODEL_TYPE} --data_dir ${DATA_DIR} --lr ${l} \
             --bs ${b} --eval_bs ${EVAL_BS} --epochs ${EPOCHS} --grad_acc ${GRAD_ACC} --max_length ${MAX_LENGTH} \
             --max_prompt_length ${MAX_PROMPT_LENGTH} --save_path ${SAVE_PATH} --save_interval ${SAVE_INTERVAL} \
-            --seed ${SEED} --seed_order ${SEED_ORDER}
+            --seed ${SEED} --seed_order ${SEED_ORDER} --quantize ${QUANTIZE} 
     done
   done
 done
