@@ -51,6 +51,7 @@ while [[ "$#" -gt 0 ]]; do
         --seed) SEED=$2; shift ;;
         --seed_order) SEED_ORDER=$2; shift ;;
         --quantize) QUANTIZE=$2; shift ;;
+        --lora) LORA=$2; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -100,7 +101,9 @@ OPTS+=" --log-interval 4"
 OPTS+=" --mid-log-num -1"
 OPTS+=" --save ${SAVE_PATH}"
 # lora
-OPTS+=" --peft lora"
+if [ -n "${LORA}" ]; then
+    OPTS+=" --peft lora"
+fi
 # quantize
 if [ -n "${QUANTIZE}" ]; then
     OPTS+=" --quantized"
