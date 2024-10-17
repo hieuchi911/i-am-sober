@@ -51,12 +51,19 @@ for dataset in ${DATASETS[@]}; do
           rm -r "${directory}"
       fi
       echo "echo lr${l} - bs${b}: RUNNING"
-      bash scripts/llama3.1/sft/sft_70B_lora.sh --nprocs ${NPROCS} \
+      SCRIPT=" --nprocs ${NPROCS} \
             --base_path ${BASE_PATH} --wandb_key ${WANDB_KEY} --wandb_prj ${WANDB_PRJ} --model_path ${MODEL_PATH} \
             --model_name ${MODEL_NAME} --model_type ${MODEL_TYPE} --data_dir ${DATA_DIR} --lr ${l} \
             --bs ${b} --eval_bs ${EVAL_BS} --epochs ${EPOCHS} --grad_acc ${GRAD_ACC} --max_length ${MAX_LENGTH} \
             --max_prompt_length ${MAX_PROMPT_LENGTH} --save_path ${SAVE_PATH} --save_interval ${SAVE_INTERVAL} \
-            --seed ${SEED} --seed_order ${SEED_ORDER} --quantize ${QUANTIZE} --lora ${LORA}
+            --seed ${SEED} --seed_order ${SEED_ORDER}"
+      if [ -n "${QUANTIZE}" ]; then
+        SCRIPT="${SCRIPT} --quantize ${QUANTIZE}"
+      fi
+      if [ -n "${LORA}" ]; then
+        SCRIPT="${SCRIPT} --lora ${LORA}"
+      fi
+      bash scripts/llama3.1/sft/sft_70B_lora.sh ${SCRIPT}
     done
   done
 done
