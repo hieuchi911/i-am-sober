@@ -142,4 +142,4 @@ echo ${WANDB_API_KEY}
 echo ${WANDB_PROJECT}
 echo ${WANDB_NAME}
 echo "==========="
-${CMD}
+# ${CMD}

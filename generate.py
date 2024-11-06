@@ -10,7 +10,12 @@ import numpy as np
 import json
 from tqdm import tqdm
 
-from transformers import mpu
+try:
+    from transformers import mpu
+except ImportError:
+    pass
+from vllm import LLM, SamplingParams
+from vllm.lora.request import LoRARequest
 
 from arguments import get_args
 
@@ -45,21 +50,27 @@ def setup_model(args, ds_config, device):
     return model
 
 def setup_vllm_model(args):
-    from vllm import LLM, SamplingParams
-    model = LLM(model=args.model_path, tensor_parallel_size=args.n_gpu, dtype="float16") # `gpu_memory_utilization=0.9` by default, reduce this to avoid OOM
+    # model = LLM(model=args.model_path, tensor_parallel_size=args.n_gpu, dtype="float16") # `gpu_memory_utilization=0.9` by default, reduce this to avoid OOM
+    model = LLM(model=args.model_path, dtype="float16", quantization="bitsandbytes",
+                load_format="bitsandbytes", enable_lora=True, gpu_memory_utilization=0.99,
+                max_model_len=55770) # depends on gpu available, may need to increase `gpu_memory_utilization` or decreasing `max_model_len`
+    # model = LLM(model=args.model_path, tensor_parallel_size=args.n_gpu,  dtype="float16", enable_lora=True)
+    
     max_new_tokens = args.max_length - args.max_prompt_length
     # --do-sample --top-k 0 --top-p 1.0 --temperature 1.0 --max-new-tokens max_new_tokens
     sampling_params = SamplingParams(top_k=args.top_k, top_p=args.top_p, temperature=args.temperature,
                                      max_tokens=max_new_tokens)
-    return model, sampling_params
 
-def vllm_generate(args, model, tokenizer, sampling_params, dataset):
+    lora_request = LoRARequest("dolly_adapter", 1, "mkopecki/chess-lora-adapter-llama-3.1-8b")
+    return model, sampling_params, lora_request
+
+def vllm_generate(args, model, lora_request, tokenizer, sampling_params, dataset):
     collate_fn = dataset.collate
     dataloader = DataLoader(dataset, batch_size=args.eval_batch_size, num_workers=2, collate_fn=collate_fn)
     all_gen_strs, all_idxs = [], []
     for it, (model_batch, no_model_batch) in enumerate(tqdm(dataloader, desc="Generating")):
         prompt = tokenizer.batch_decode(model_batch["input_ids"], skip_special_tokens=True)
-        outputs = model.generate(prompt, sampling_params, use_tqdm=False)
+        outputs = model.generate(prompt, sampling_params, use_tqdm=False, lora_request=lora_request)
         output = [preds.outputs[0].text for preds in outputs]
         all_gen_strs.extend(output)
 
@@ -182,9 +193,9 @@ def main():
             tokenizer,
         )
 
-        model, sampling_params = setup_vllm_model(args)
+        model, sampling_params, lora_request = setup_vllm_model(args)
 
-        vllm_generate(args, model, tokenizer, sampling_params, dataset)
+        vllm_generate(args, model, lora_request, tokenizer, sampling_params, dataset)
 
     else:
         initialize(args)

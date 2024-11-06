@@ -1,15 +1,16 @@
 #!/bin/bash
 NPROCS=2 # number of GPUs to use
-BASE_PATH="/home1/hieutn/cs566/i-am-sober" # path to i-am-sober folder
+MODEL_PARALLEL_SIZE=2
+BASE_PATH="/home/zihaoh/repos/i-am-sober" # path to i-am-sober folder
 WANDB_KEY="8b07b9ebb0f0b08e31878929ec6324fdc098f376"
-WANDB_PRJ="i_am_sober_dolly_sft_llama3.1_test"
+WANDB_PRJ="i_am_sober_dolly_sft13B"
 # model
-MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3.1-8B-Instruct/snapshots/5206a32e0bd3067aef1ce90f5528ade7d866253f/" # path to model snapshots
-MODEL_NAME="llama-8B-baseline"
-MODEL_TYPE="llama3.1"
+MODEL_PATH="/home/shared/transformers_cache/hub/<llama-13B-snapshots>" # path to model snapshots
+MODEL_NAME="llama-13B-teacher"
+MODEL_TYPE="llama2"
 # hp
 LR=(1e-05 5e-06)
-BS=(8 4)
+BS=(8)
 EVAL_BS=8
 EPOCHS=3
 GRAD_ACC=1
@@ -17,7 +18,8 @@ GRAD_ACC=1
 MAX_LENGTH=1024
 MAX_PROMPT_LENGTH=512
 # data
-DATASETS=(dolly)  # (dolly cnn_dailymail)
+DATASETS=(dolly)
+TASK="summ"
 # runtime
 SAVE_PATH="${BASE_PATH}/results/${MODEL_TYPE}/train/sft"
 SAVE_INTERVAL=-1
@@ -31,7 +33,7 @@ for dataset in ${DATASETS[@]}; do
   for l in ${LR[@]}; do
     for b in ${BS[@]}; do
       # Skip successful runs, restart unfinished runs
-      directory="${SAVE_PATH}/e${EPOCHS}-bs${b}-lr${l}-G${GRAD_ACC}-N${NPROCS}-NN1"
+      directory="${SAVE_PATH}/e${EPOCHS}-bs${b}-lr${l}-G${GRAD_ACC}-N${NPROCS}-NN1-mp${MODEL_PARALLEL_SIZE}"
       if [ -d "$directory/eval" ]; then
         # Count the number of folders in the eval subdirectory
         eval_folder_count=$(find "$directory/eval" -maxdepth 1 -type d | wc -l)
@@ -49,9 +51,9 @@ for dataset in ${DATASETS[@]}; do
           rm -r "${directory}"
       fi
       echo "echo lr${l} - bs${b}: RUNNING"
-      bash scripts/llama3.1/sft/sft_8B.sh --nprocs ${NPROCS} \
+      bash scripts/llama/sft/sft_13B_mp4.sh --nprocs ${NPROCS} --model_parallel_size ${MODEL_PARALLEL_SIZE} \
             --base_path ${BASE_PATH} --wandb_key ${WANDB_KEY} --wandb_prj ${WANDB_PRJ} --model_path ${MODEL_PATH} \
-            --model_name ${MODEL_NAME} --model_type ${MODEL_TYPE} --data_dir ${DATA_DIR} --lr ${l} \
+            --model_name ${MODEL_NAME} --model_type ${MODEL_TYPE} --data_dir ${DATA_DIR} --task ${TASK} --lr ${l} \
             --bs ${b} --eval_bs ${EVAL_BS} --epochs ${EPOCHS} --grad_acc ${GRAD_ACC} --max_length ${MAX_LENGTH} \
             --max_prompt_length ${MAX_PROMPT_LENGTH} --save_path ${SAVE_PATH} --save_interval ${SAVE_INTERVAL} \
             --seed ${SEED} --seed_order ${SEED_ORDER}

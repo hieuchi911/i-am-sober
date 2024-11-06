@@ -1,11 +1,11 @@
 #!/bin/bash
 NPROCS=2 # number of GPUs to use
 MODEL_PARALLEL_SIZE=2
-BASE_PATH="/home/zihaoh/repos/i-am-sober" # path to i-am-sober folder
+BASE_PATH="/home1/hieutn/cs566/i-am-sober" # path to i-am-sober folder
 WANDB_KEY="8b07b9ebb0f0b08e31878929ec6324fdc098f376"
-WANDB_PRJ="i_am_sober_dolly"
+WANDB_PRJ="i_am_sober_dolly_sft_test"
 # model
-MODEL_PATH="/home/shared/transformers_cache/hub/<llama-7B-snapshots>" # path to model snapshots
+MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590/" # path to model snapshots
 MODEL_NAME="llama-7B-baseline"
 MODEL_TYPE="llama2"
 # hp
@@ -57,6 +57,9 @@ for dataset in ${DATASETS[@]}; do
             --bs ${b} --eval_bs ${EVAL_BS} --epochs ${EPOCHS} --grad_acc ${GRAD_ACC} --max_length ${MAX_LENGTH} \
             --max_prompt_length ${MAX_PROMPT_LENGTH} --save_path ${SAVE_PATH} --save_interval ${SAVE_INTERVAL} \
             --seed ${SEED} --seed_order ${SEED_ORDER}
+      echo "============"
+      echo "============"
+      echo "============"
     done
   done
 done

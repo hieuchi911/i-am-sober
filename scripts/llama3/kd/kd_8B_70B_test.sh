@@ -2,16 +2,30 @@
 NPROCS=2 # number of GPUs to use
 MODEL_PARALLEL_SIZE=2
 
+DISTRIBUTED_ARGS="--nproc_per_node ${NPROCS} \
+                  --nnodes 1 \
+                  --node_rank 0 \
+                  --master_addr localhost \
+                  --master_port 2012"
+
 BASE_PATH="/home1/hieutn/cs566/i-am-sober" # path to i-am-sober folder
 WANDB_KEY="8b07b9ebb0f0b08e31878929ec6324fdc098f376"
-WANDB_PRJ="i_am_sober_dolly_kd_test"
+WANDB_PRJ="i_am_sober"
 
 # model
 MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"  # path to model snapshots
-MODEL_NAME="llama-7B-Student"
+MODEL_NAME="llama-8B-Student"
 TEACHER_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"    # path to model snapshots
-TEACHER_MODEL_NAME="llama-13B-Teacher"
+TEACHER_MODEL_NAME="llama-70B-Teacher"
 MODEL_TYPE="llama"
+
+# MODEL_PATH="/scratch1/hieutn/hub/models--facebook--opt-1.3b/snapshots/3f5c25d0bc631cb57ac65913f76e22c2dfb61d62/"  # path to model snapshots
+# MODEL_NAME="opt-1.3b-Student"
+# TEACHER_PATH="/scratch1/hieutn/hub/models--facebook--opt-1.3b/snapshots/3f5c25d0bc631cb57ac65913f76e22c2dfb61d62/"    # path to model snapshots
+# TEACHER_MODEL_NAME="opt-1.3b-Teacher"
+# MODEL_TYPE="opt"
+# data
+DATA_DIR=${BASE_PATH}/processed_data/cnn_dailymail/full-${MAX_LENGTH}-${MAX_PROMPT_LENGTH}
 # hp
 BS=8
 EVAL_BS=8
@@ -22,16 +36,13 @@ KD_RATIO=1
 # length
 MAX_LENGTH=1024
 MAX_PROMPT_LENGTH=512
-# data
-DATA_DIR=/project/lerman_316/hieutn/processed_data/cnn_dailymail/pseudo
-TASK="summ"
 # runtime
 SAVE_PATH="${BASE_PATH}/results/${MODEL_TYPE}/train/kd"
-SAVE_INTERVAL=-1
 # seed
 SEED=10
 SEED_ORDER=10
 
+# HPO
 # Parse named arguments
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -46,7 +57,6 @@ while [[ "$#" -gt 0 ]]; do
         --teacher_model_name) TEACHER_MODEL_NAME=$2; shift ;;
         --model_type) MODEL_TYPE=$2; shift ;;
         --data_dir) DATA_DIR=$2; shift ;;
-        --task) TASK=$2; shift ;;
         --bs) BS=$2; shift ;;
         --lr) LR=$2; shift ;;
         --kd_ratio) KD_RATIO=$2; shift ;;
@@ -56,7 +66,6 @@ while [[ "$#" -gt 0 ]]; do
         --max_length) MAX_LENGTH=$2; shift ;;
         --max_prompt_length) MAX_PROMPT_LENGTH=$2; shift ;;
         --save_path) SAVE_PATH=$2; shift ;;
-        --save_interval) SAVE_INTERVAL=$2; shift ;;
         --seed) SEED=$2; shift ;;
         --seed_order) SEED_ORDER=$2; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
@@ -64,11 +73,45 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-DISTRIBUTED_ARGS="--nproc_per_node ${NPROCS} \
-                  --nnodes 1 \
-                  --node_rank 0 \
-                  --master_addr localhost \
-                  --master_port 2012"
+echo "NPROCS: ${NPROCS}"
+echo "MODEL_PARALLEL_SIZE: ${MODEL_PARALLEL_SIZE}"
+echo "BASE_PATH: ${BASE_PATH}"
+echo "WANDB_KEY: ${WANDB_KEY}"
+echo "WANDB_PRJ: ${WANDB_PRJ}"
+echo "MODEL_PATH: ${MODEL_PATH}"
+echo "MODEL_NAME: ${MODEL_NAME}"
+echo "TEACHER_PATH: ${TEACHER_PATH}"
+echo "TEACHER_MODEL_NAME: ${TEACHER_MODEL_NAME}"
+echo "MODEL_TYPE: ${MODEL_TYPE}"
+echo "DATA_DIR: ${DATA_DIR}"
+echo "BS: ${BS}"
+echo "LR: ${LR}"
+echo "KD_RATIO: ${KD_RATIO}"
+echo "EVAL_BS: ${EVAL_BS}"
+echo "EPOCHS: ${EPOCHS}"
+echo "GRAD_ACC: ${GRAD_ACC}"
+echo "MAX_LENGTH: ${MAX_LENGTH}"
+echo "MAX_PROMPT_LENGTH: ${MAX_PROMPT_LENGTH}"
+echo "SAVE_PATH: ${SAVE_PATH}"
+echo "SEED: ${SEED}"
+echo "SEED_ORDER: ${SEED_ORDER}"
+echo "========================================"
+echo " "
+# # Tokenize data and save in binary files
+# PYTHONPATH=${BASE_PATH} python ${BASE_PATH}/tools/process_data_cnn_dailymail.py \
+#     --hugg-data-id abisee/cnn_dailymail \
+#     --hugg-data-subset 1.0.0 \
+#     --processed-data-dir ${DATA_DIR} \
+#     --model-path ${MODEL_PATH} \
+#     --data-process-workers 32 \
+#     --max-length ${MAX_LENGTH} \
+#     --max-prompt-length ${MAX_PROMPT_LENGTH} \
+#     --dev-num 1000 \
+#     --model-type ${MODEL_TYPE}
+
+# # Change Model Parallel Size
+# python tools/convert_mp.py --input_path ${MODEL_PATH} --source_mp_size 1 --target_mp_size ${NPROCS} --model_type ${MODEL_TYPE} --exist_ok
+# python tools/convert_mp.py --input_path ${TEACHER_PATH} --source_mp_size 1 --target_mp_size ${NPROCS} --model_type ${MODEL_TYPE} --exist_ok
 
 OPTS=""
 # model
@@ -86,7 +129,7 @@ OPTS+=" --model-parallel-size ${MODEL_PARALLEL_SIZE}"
 
 # data
 OPTS+=" --data-dir ${DATA_DIR}/${MODEL_TYPE}/"
-OPTS+=" --task ${TASK}"
+OPTS+=" --task summ"
 OPTS+=" --num-workers 1"
 OPTS+=" --dev-num -1"
 
@@ -110,7 +153,7 @@ OPTS+=" --max-prompt-length ${MAX_PROMPT_LENGTH}"
 OPTS+=" --do-train"
 OPTS+=" --do-valid"
 OPTS+=" --eval-gen"
-OPTS+=" --save-interval ${SAVE_INTERVAL}"
+OPTS+=" --save-interval 1000"
 OPTS+=" --eval-interval -1"
 OPTS+=" --log-interval 4"
 OPTS+=" --mid-log-num -1"
@@ -118,7 +161,6 @@ OPTS+=" --save ${SAVE_PATH}"
 
 # seed
 OPTS+=" --seed ${SEED}"
-OPTS+=" --seed-order ${SEED_ORDER}"
 
 # deepspeed
 OPTS+=" --deepspeed"
@@ -139,7 +181,6 @@ export WANDB_DISABLED=False
 export WANDB_SILENT=1
 export WANDB_API_KEY=${WANDB_KEY}
 export WANDB_PROJECT=${WANDB_PRJ}
-export WANDB_NAME="kd-${MODEL_TYPE}-lr${LR}_bs${BS}_kd${KD_RATIO}"
 
 export TF_CPP_MIN_LOG_LEVEL=3
 export PYTHONPATH=${BASE_PATH}

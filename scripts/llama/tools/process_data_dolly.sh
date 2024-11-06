@@ -15,10 +15,10 @@ PYTHONPATH=${BASE_PATH} python3 ${BASE_PATH}/tools/process_data_dolly.py \
 
 # prompt and response for baselines
 PYTHONPATH=${BASE_PATH} python3 ${BASE_PATH}/tools/process_data_dolly.py \
-    --data-dir ${BASE_PATH}/data/dolly/ \
-    --processed-data-dir ${BASE_PATH}/processed_data/dolly/full \
     --model-path ${BASE_PATH}/checkpoints/llama-7B \
-    --data-process-workers 32 \
+    --model-type llama \
+    --data-dir ${BASE_PATH}/data/dolly/ \
     --max-prompt-length 256 \
-    --dev-num 1000 \
-    --model-type llama
+    --processed-data-dir ${BASE_PATH}/processed_data/dolly/full \
+    --data-process-workers 32 \
+    --dev-num 1000

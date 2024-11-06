@@ -3,10 +3,13 @@
 NPROCS=2
 
 # model
+# BASE_PATH="/home/zihaoh/repos/i-am-sober" # path to i-am-sober folder
+# MODEL_PATH="" # path to SFT model
 BASE_PATH="/home1/hieutn/cs566/i-am-sober" # path to i-am-sober folder
-MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590/" # path to SFT model
-MODEL_NAME="llama-13B-sft"
-MODEL_TYPE="llama2"
+MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3.1-8B-Instruct/snapshots/5206a32e0bd3067aef1ce90f5528ade7d866253f/" # path to SFT model
+
+MODEL_NAME="llama-70B-sft"
+MODEL_TYPE="llama3.1"
 # length
 MAX_LENGTH=1024
 MAX_PROMPT_LENGTH=512
@@ -49,12 +52,11 @@ for DATA_NAME in ${DATA_NAMES[@]}; do
     OPTS+=" --top-p 1.0"
     OPTS+=" --temperature 1.0"
 
-
     export TOKENIZERS_PARALLELISM=false
     export PYTHONIOENCODING=utf-8
     export PYTHONPATH=${BASE_PATH}
+    export VLLM_WORKER_MULTIPROC_METHOD=spawn
     CMD="python ${BASE_PATH}/generate.py ${OPTS} $@"
-
 
     echo ${CMD}
     echo "PYTHONPATH=${PYTHONPATH}"

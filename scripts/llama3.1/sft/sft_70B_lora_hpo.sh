@@ -7,7 +7,7 @@ WANDB_PRJ="i_am_sober_dolly_sft_llama3.1"
 MODEL_PATH="/home/shared/transformers_cache/hub/<llama-70B-snapshots>" # path to model snapshots
 MODEL_NAME="llama-70B-teacher"
 MODEL_TYPE="llama3.1"
-QUANTIZE="quantized"
+# QUANTIZE="quantized"
 LORA="lora"
 # hp
 LR=(1e-05 5e-06)

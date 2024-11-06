@@ -1,29 +1,31 @@
-#! /bin/bash
+#!/bin/bash
 NPROCS=2 # number of GPUs to use
-MODEL_PARALLEL_SIZE=2
 
 BASE_PATH="/home1/hieutn/cs566/i-am-sober" # path to i-am-sober folder
 WANDB_KEY="8b07b9ebb0f0b08e31878929ec6324fdc098f376"
-WANDB_PRJ="i_am_sober_dolly_sft_test"
+WANDB_PRJ="i_am_sober_dolly_kd_test"
 
 # model
-MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590/"  # path to model snapshots
-MODEL_NAME="llama-7B-baseline"
+MODEL_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"  # path to model snapshots
+MODEL_NAME="llama-7B-Student"
+TEACHER_PATH="/scratch1/hieutn/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/e1945c40cd546c78e41f1151f4db032b271faeaa/"    # path to model snapshots
+TEACHER_MODEL_NAME="llama-13B-Teacher"
 MODEL_TYPE="llama"
 # hp
-BS=2
-EVAL_BS=2
+BS=8
+EVAL_BS=8
 EPOCHS=3
 LR=0.00001
 GRAD_ACC=1
+KD_RATIO=1
 # length
 MAX_LENGTH=1024
 MAX_PROMPT_LENGTH=512
-# data 
-DATA_DIR=/project/lerman_316/hieutn/processed_data/cnn_dailymail/full-${MAX_LENGTH}-${MAX_PROMPT_LENGTH}
+# data
+DATA_DIR=/project/lerman_316/hieutn/processed_data/cnn_dailymail/pseudo
 TASK="summ"
 # runtime
-SAVE_PATH="${BASE_PATH}/results/${MODEL_TYPE}/train/sft"
+SAVE_PATH="${BASE_PATH}/results/${MODEL_TYPE}/train/kd"
 SAVE_INTERVAL=-1
 # seed
 SEED=10
@@ -33,17 +35,19 @@ SEED_ORDER=10
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --nprocs) NPROCS=$2; shift ;;
-        --model_parallel_size) MODEL_PARALLEL_SIZE=$2; shift ;;
         --base_path) BASE_PATH=$2; shift ;;
         --wandb_key) WANDB_KEY=$2; shift ;;
         --wandb_prj) WANDB_PRJ=$2; shift ;;
         --model_path) MODEL_PATH=$2; shift ;;
         --model_name) MODEL_NAME=$2; shift ;;
+        --teacher_path) TEACHER_PATH=$2; shift ;;
+        --teacher_model_name) TEACHER_MODEL_NAME=$2; shift ;;
         --model_type) MODEL_TYPE=$2; shift ;;
         --data_dir) DATA_DIR=$2; shift ;;
         --task) TASK=$2; shift ;;
-        --lr) LR=$2; shift ;;
         --bs) BS=$2; shift ;;
+        --lr) LR=$2; shift ;;
+        --kd_ratio) KD_RATIO=$2; shift ;;
         --eval_bs) EVAL_BS=$2; shift ;;
         --epochs) EPOCHS=$2; shift ;;
         --grad_acc) GRAD_ACC=$2; shift ;;
@@ -53,6 +57,8 @@ while [[ "$#" -gt 0 ]]; do
         --save_interval) SAVE_INTERVAL=$2; shift ;;
         --seed) SEED=$2; shift ;;
         --seed_order) SEED_ORDER=$2; shift ;;
+        --teacher_quantized) TEACHER_QUANTIZED=$2; shift ;;
+        --teacher_peft_path) TEACHER_LORA_PATH=$2; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -68,16 +74,22 @@ OPTS=""
 # model
 OPTS+=" --base-path ${BASE_PATH}"
 OPTS+=" --model-path ${MODEL_PATH}"
+OPTS+=" --teacher-model-path ${TEACHER_PATH}"
 OPTS+=" --ckpt-name ${MODEL_NAME}"
+OPTS+=" --teacher-ckpt-name ${TEACHER_MODEL_NAME}"
+OPTS+=" --teacher-model-fp16"
 OPTS+=" --n-gpu ${NPROCS}"
 OPTS+=" --model-type ${MODEL_TYPE}"
 OPTS+=" --gradient-checkpointing"
-OPTS+=" --model-parallel"
-OPTS+=" --model-parallel-size ${MODEL_PARALLEL_SIZE}"
-
+if [ -n "${TEACHER_QUANTIZED}" ]; then
+    OPTS+=" --teacher-quantized"
+fi
+if [ -n "${TEACHER_LORA_PATH}" ]; then
+    OPTS+=" --teacher-peft-path ${TEACHER_LORA_PATH}"
+fi
 # data
 OPTS+=" --data-dir ${DATA_DIR}/${MODEL_TYPE}/"
-# OPTS+=" --task ${TASK}" # no need for dolly
+OPTS+=" --task ${TASK}"
 OPTS+=" --num-workers 1"
 OPTS+=" --dev-num -1"
 
@@ -91,6 +103,7 @@ OPTS+=" --lr-decay-style cosine"
 OPTS+=" --weight-decay 1e-2"
 OPTS+=" --clip-grad 1.0"
 OPTS+=" --epochs ${EPOCHS}"
+OPTS+=" --kd-ratio ${KD_RATIO}"
 
 # length
 OPTS+=" --max-length ${MAX_LENGTH}"
@@ -112,10 +125,10 @@ OPTS+=" --seed-order ${SEED_ORDER}"
 
 # deepspeed
 OPTS+=" --deepspeed"
-OPTS+=" --deepspeed_config ${BASE_PATH}/configs/deepspeed/ds_config_zero2.json"
+OPTS+=" --deepspeed_config ${BASE_PATH}/configs/deepspeed/ds_config.json"
 
 # type
-OPTS+=" --type lm"
+OPTS+=" --type kd"
 
 # gen
 OPTS+=" --do-sample"
@@ -129,16 +142,11 @@ export WANDB_DISABLED=False
 export WANDB_SILENT=1
 export WANDB_API_KEY=${WANDB_KEY}
 export WANDB_PROJECT=${WANDB_PRJ}
-export WANDB_NAME="sft-${MODEL_TYPE}-lr${LR}_bs${BS}"
+export WANDB_NAME="kd-${MODEL_TYPE}-lr${LR}_bs${BS}_kd${KD_RATIO}"
 
 export TF_CPP_MIN_LOG_LEVEL=3
 export PYTHONPATH=${BASE_PATH}
 CMD="torchrun ${DISTRIBUTED_ARGS} ${BASE_PATH}/finetune.py ${OPTS} $@"
 
 echo ${CMD}
-echo "PYTHONPATH=${PYTHONPATH}"
-echo ${WANDB_API_KEY}
-echo ${WANDB_PROJECT}
-echo ${WANDB_NAME}
-echo "==========="
 ${CMD}

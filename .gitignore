@@ -9,3 +9,5 @@ processed_data
 transformers
 data
 results
+jobs
+wandb

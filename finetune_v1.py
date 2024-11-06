@@ -63,23 +63,17 @@ def get_teacher_model(args, device):
         model = model.to(device)
     else:
         config.is_model_parallel = False
-        if args.teacher_quantized:
-            # 8bit quantization
-            model = AutoModelForCausalLM.from_pretrained(
-                args.teacher_model_path,
-                load_in_8bit=True,
-                torch_dtype=torch.float16 if args.model_type!="qwen" else torch.bfloat16,
-                device_map={"": device},
-            )
-        else:
-            model = AutoModelForCausalLM.from_pretrained(
-                args.teacher_model_path,
-                config=config,
-                device_map={"": device},
-                torch_dtype=torch.float16 if args.model_type!="qwen" else torch.bfloat16
-            )
-        if args.teacher_peft_path is not None:
-            model = PeftModel.from_pretrained(model, args.teacher_peft_path)
+        model = AutoModelForCausalLM.from_pretrained(
+            args.teacher_model_path, 
+            config=config, 
+            torch_dtype=torch.float16 if args.model_type!="qwen" else torch.bfloat16
+        )
+
+        if args.peft is not None and args.teacher_peft_path is not None:
+            if args.peft == "lora":
+                model = PeftModel.from_pretrained(model, args.peft_path)
+            else:
+                raise NotImplementedError
         else:
             if dist.get_rank() == 0:
                 print(' > number of parameters: {}'.format(
@@ -284,7 +278,7 @@ def get_teacher_lm_loss(args, tokenizer, model, teacher_model, model_batch):
 def finetune(args, tokenizer: AutoTokenizer,
              model: deepspeed.DeepSpeedEngine,
              optimizer: AdamW, lr_scheduler,
-             train_dataloader, device, teacher_model=None):
+             train_dataloader, eval_dataloader, device, teacher_model=None):
     print_rank("Start Fine-tuning")
 
     # print_inspect(model, '*')
@@ -302,7 +296,7 @@ def finetune(args, tokenizer: AutoTokenizer,
     step, global_step = 1, 1
     total_loss, total_lm_loss, total_distil_loss, total_time = 0.0, 0.0, 0.0, 0.0
     
-    # evaluate(args, tokenizer, model, dataset["dev"], "dev", 0, device)
+    evaluate(args, tokenizer, model, eval_dataloader, "dev", 0, device)
     for epoch in range(args.epochs):
         # ==================================
         # ===============NEW================
@@ -314,12 +308,13 @@ def finetune(args, tokenizer: AutoTokenizer,
 
         model.train()
         for it, (model_batch, no_model_batch, gen_data) in enumerate(train_dataloader):
-            print(f'model_batch["input_ids"].shape is: {model_batch["input_ids"].shape}')
-            # ==================================
-            # ===============NEW================
-            # ==================================
-            # dataset["train"].move_to_device(model_batch, no_model_batch, gen_data, device)
-
+            # if it == 3: exit()
+            # # print(f'model_batch["input_ids"].shape is: {model_batch["input_ids"].shape}')
+            # # print text of the first sequence in this batch
+            # if dist.get_rank() == 0:
+            #     text = tokenizer.decode(model_batch["input_ids"][0], skip_special_tokens=True)
+            #     print(f'\n\n\t===>\t text is: {text}\n\n')
+            
             optimizer.zero_grad()
             # ==================================
             # =============END-NEW==============
@@ -445,13 +440,19 @@ def finetune(args, tokenizer: AutoTokenizer,
                         os.makedirs(save_dir_path, exist_ok=True)
                         print_rank(f"Model save to {save_dir_path}")
                         tokenizer.save_pretrained(save_dir_path)
-                        model.module.save_pretrained(save_dir_path, safe_serialization=False)
+                    accelerator.wait_for_everyone()
+                    unwrapped_model = accelerator.unwrap_model(model)
+                    unwrapped_model.save_pretrained(
+                        save_dir_path,
+                        is_main_process=accelerator.is_main_process,
+                        save_function=accelerator.save
+                    )
                 dist.barrier()
 
             # Evaluation
             if args.eval_interval and global_step % args.eval_interval == 0 and step % args.gradient_accumulation_steps == 0:
-                evaluate(args, tokenizer, model, train_dataloader["dev"], "dev", epoch, device)
-                    
+                evaluate(args, tokenizer, model, eval_dataloader, "dev", epoch, device)
+                
                 model.train()
                 
             step += 1
@@ -464,10 +465,8 @@ def finetune(args, tokenizer: AutoTokenizer,
     return model
 
 
-def evaluate(args, tokenizer, model, dataset: LMTrainDataset, split, epoch, device):
+def evaluate(args, tokenizer, model, dataloader, split, epoch, device):
     
-    collate_fn = dataset.collate
-
     if args.model_parallel:
         dp_world_size = mpu.get_data_parallel_world_size()
         dp_rank = mpu.get_data_parallel_rank()
@@ -495,10 +494,6 @@ def evaluate(args, tokenizer, model, dataset: LMTrainDataset, split, epoch, devi
         output_scores=False
     )
 
-    sampler = DistributedSampler(dataset, shuffle=False, drop_last=False, rank=dp_rank, num_replicas=dp_world_size)
-    dataloader = DataLoader(
-        dataset, sampler=sampler, batch_size=args.eval_batch_size, num_workers=args.num_workers, collate_fn=collate_fn)
-
     model.eval()
     all_loss = 0.0
     step = 0
@@ -513,7 +508,14 @@ def evaluate(args, tokenizer, model, dataset: LMTrainDataset, split, epoch, devi
             #         print(f"rank: {dist.get_rank()}", model_batch["input_ids"][0][:128])
             #     dist.barrier()
             print_rank(f"{it}/{len(dataloader)}")
-            dataset.move_to_device(model_batch, no_model_batch, gen_data, device)
+            if it==1: break
+            if dist.get_rank() == 0:
+                text = tokenizer.decode(gen_data["input_ids"][0], skip_special_tokens=True)
+                print(f'\n\n\t===>\t EVAL text is: {text}\n\n')
+                
+                # text = tokenizer.decode(model_batch["input_ids"][0], skip_special_tokens=True)
+                # print(f'{text}\n\n')
+
             logits = model(**model_batch).logits
             if args.model_parallel:
                 lm_losses = loss_func(logits.contiguous().float(), no_model_batch["label"]).view(-1)
@@ -524,11 +526,12 @@ def evaluate(args, tokenizer, model, dataset: LMTrainDataset, split, epoch, devi
             
             max_new_tokens = args.max_length - gen_data["input_ids"].size(1)
             
-            if args.eval_gen:            
-                gen_out = model.generate(
-                    **gen_data,
-                    generation_config=generation_config,
-                    max_new_tokens=max_new_tokens)
+            if args.eval_gen:
+                with torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params(model):
+                    gen_out = model.generate(
+                        **gen_data,
+                        generation_config=generation_config,
+                        max_new_tokens=max_new_tokens, synced_gpus=True)
                 
                 full_ids = gen_out.sequences
                 
@@ -555,8 +558,9 @@ def evaluate(args, tokenizer, model, dataset: LMTrainDataset, split, epoch, devi
     
     if get_rank() == 0:
         if args.eval_gen:
-            references = dataset.answers
+            references = dataloader.dataset.answers[:8]
             responses = responses[:len(references)]
+            print(">>>>>>>>> responses[0]", responses[0])
             
             res = compute_metrics(responses, references, task=args.task)
         
@@ -647,6 +651,10 @@ def main():
         dataset['train'], batch_size=args.batch_size, num_workers=args.num_workers,
         collate_fn=dataset["train"].collate
     )
+    eval_dataloader = DataLoader(
+        dataset['dev'], batch_size=args.eval_batch_size, num_workers=args.num_workers,
+        collate_fn=dataset["dev"].collate
+    )
     # ==================================
     # =============END-NEW==============
     # ==================================
@@ -673,6 +681,7 @@ def main():
     # ===============NEW================
     # ==================================
     model, optimizer, lr_scheduler, train_dataloader = accelerator.prepare(model, optimizer, lr_scheduler, train_dataloader)
+    eval_dataloader = accelerator.prepare(eval_dataloader)
     # ==================================
     # =============END-NEW==============
     # ==================================
@@ -698,10 +707,14 @@ def main():
         teacher_model = None
     
     if args.do_train:
-        model = finetune(args, tokenizer, model, optimizer, lr_scheduler, train_dataloader, device, teacher_model=teacher_model)
+        model = finetune(args, tokenizer, model, optimizer, lr_scheduler, train_dataloader, eval_dataloader, device, teacher_model=teacher_model)
    
     if args.do_eval:
-        evaluate(args, tokenizer, model, dataset["test"], "test", 0, device)
+        test_dataloader = DataLoader(
+            dataset['test'], batch_size=args.eval_batch_size, num_workers=args.num_workers,
+            collate_fn=dataset["test"].collate
+        )
+        evaluate(args, tokenizer, model, test_dataloader, "test", 0, device)
         
     
 if __name__ == "__main__":
